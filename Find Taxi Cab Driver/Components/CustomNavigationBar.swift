@@ -19,6 +19,7 @@ struct CustomNavigationBar: View {
     let leadingType: NavBarLeadingType
     
     var onMenuTap: (() -> Void)?
+    var toggleBinding: Binding<Bool>? = nil
     
     @EnvironmentObject private var router: AppRouter
     
@@ -36,8 +37,7 @@ struct CustomNavigationBar: View {
             
             Spacer()
             
-            Color.clear
-                .frame(width: 40)
+            trailingView
         }
         .frame(height: 58)
         .background(AppColors.primaryYellow)
@@ -80,4 +80,28 @@ private extension CustomNavigationBar {
                 .frame(width: 50)
         }
     }
+}
+
+private extension CustomNavigationBar {
+
+    @ViewBuilder
+    var trailingView: some View {
+
+        if let toggleBinding {
+
+            Toggle("", isOn: toggleBinding)
+                .labelsHidden()
+                .toggleStyle(AppSwitchToggleStyle())
+                .padding(.horizontal, 20)
+
+        } else {
+
+            Color.clear
+                .frame(width: 56)
+        }
+    }
+}
+
+#Preview {
+    CustomNavigationBar(title: "", leadingType: .none, onMenuTap: nil, toggleBinding: .constant(true))
 }

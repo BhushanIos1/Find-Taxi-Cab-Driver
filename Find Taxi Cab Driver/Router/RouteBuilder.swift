@@ -15,43 +15,37 @@ struct RouteBuilder {
         switch route {
             
         case .home:
-            LandingScreen()
+            HomeScreen()
             
-        case .history:
-            LandingScreen()
+        case .jobHistory:
+            JobHistoryScreen()
             
-        case .booking:
-            LandingScreen()
+        case .paymentHistory:
+            PaymentHistoryScreen()
             
-        case .emergency:
-            LandingScreen()
+        case .bankDetails:
+            BankDetailsView()
             
-        case .setting:
-            LandingScreen()
+        case .profile:
+            ProfileView()
             
         case .changePassword:
-            LandingScreen()
+            ChangePassword()
             
-        case .editCardDetails:
-            LandingScreen()
+        case .emergency:
+            EmergencyScreen()
             
-        case .promotion:
-            LandingScreen()
-            
-        case .about:
-            LandingScreen()
-            
-        case .help:
-            LandingScreen()
+        case .booking:
+            BookingScreen()
             
         case .login:
-            LandingScreen()
+            LoginScreen()
             
         case .forgotPassword:
-            LandingScreen()
+            ForgotPasswordView()
             
         case .registration:
-            LandingScreen()
+            RegisterScreen()
         }
     }
 }

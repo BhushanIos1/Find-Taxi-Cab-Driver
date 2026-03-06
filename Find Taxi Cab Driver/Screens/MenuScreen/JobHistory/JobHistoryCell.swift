@@ -23,25 +23,23 @@ struct JobHistoryCell: View {
             
             detailsSection
         }
-        .background(cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .shadow(
-            color: .black.opacity(0.15),
-            radius: 8,
-            x: 0,
-            y: 4
-        )
-        .padding(.horizontal)
         .background(
             colorScheme == .dark
             ? Color(.systemGray6)
             : Color(.white)
         )
+        .clipShape(
+            RoundedRectangle(cornerRadius: 4)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(AppColors.yellowBorder, lineWidth: 0.8)
+        )
         .shadow(
-            color: .black.opacity(0.08),
-            radius: 8,
+            color: .black.opacity(0.07),
+            radius: 4,
             x: 0,
-            y: 4
+            y: 8
         )
     }
 }
@@ -51,10 +49,10 @@ private extension JobHistoryCell {
     var statusHeader: some View {
         
         Text(item.status)
-            .font(.system(size: 18, weight: .semibold))
+            .font(AppFont.font(.medium, size: 16))
             .foregroundColor(statusColor)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
+            .padding(.vertical, 16)
     }
 }
 
@@ -66,11 +64,11 @@ private extension JobHistoryCell {
         case "completed":
             return .green
         case "abandoned":
-            return .orange
+            return AppColors.primaryYellow
         case "cancelled":
             return .red
         default:
-            return .primary
+            return AppColors.primaryYellow
         }
     }
 }
@@ -108,28 +106,22 @@ private extension JobHistoryCell {
                 
                 Text("\(title):")
                     .frame(width: 140, alignment: .leading)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color(hex: "#373737"))
                 
                 Text(value)
-                    .foregroundColor(.primary)
+                    .foregroundColor(Color(hex: "#373737"))
                 
                 Spacer()
             }
-            .font(.system(size: 14))
-            .padding(.vertical, 10)
+            .font(AppFont.font(.regular, size: 14))
+            .padding(.vertical, 12)
             .padding(.horizontal, 14)
             
             if showDivider {
                 Divider()
+                    .foregroundStyle(Color(hex: "#EFEFEF"))
             }
         }
-    }
-}
-
-private extension JobHistoryCell {
-    
-    var cardBackground: some View {
-        Color(uiColor: .secondarySystemBackground)
     }
 }
 

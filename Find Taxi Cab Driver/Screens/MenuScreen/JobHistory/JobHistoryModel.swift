@@ -7,35 +7,18 @@
 
 import SwiftUI
 
-struct BookingItem: Identifiable {
+struct JobHistoryModel: Identifiable {
     
     let id = UUID()
-    let dateTime: String
-    let price: String
-    let bookingNo: String
-    let carRegNo: String
-    let addressLine: String
-    let status: BookingStatus
-}
-
-enum BookingStatus {
-    case completed
-    case cancelled
-    case pending
     
-    var title: String {
-        switch self {
-        case .completed: return "Completed"
-        case .cancelled: return "Cancelled"
-        case .pending: return "Pending"
-        }
-    }
-    
-    var color: Color {
-        switch self {
-        case .completed: return Color(uiColor: .systemGreen)
-        case .cancelled: return Color(uiColor: .systemRed)
-        case .pending: return Color(uiColor: .systemOrange)
-        }
-    }
+    let status: String
+    let jobNumber: String
+    let jobDate: String
+    let time: String
+    let pickup: String
+    let drop: String
+    let paymentMode: String
+    let specialMessage: String
+    let specialNeed: String
+    let fare: String
 }

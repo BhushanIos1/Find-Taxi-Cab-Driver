@@ -7,12 +7,16 @@
 
 import SwiftUI
 
-struct BookingDetailsModel: View {
-    var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
-    }
+struct BookingDetailsModel: Identifiable {
+    
+    let id = UUID()
+    
+    let status: String
+    let bookingId: String
+    let customerMobile: String
+    let pickup: String
+    let drop: String
+    let bookingDate: String
+    let bookingStatus: String
 }
 
-#Preview {
-    BookingDetailsModel()
-}

@@ -326,6 +326,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Find-Taxi-Cab-Driver-Info.plist";
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app needs access to your camera to capture a profile image.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Your location is used to provide accurate ETAs, track active trips, and assign nearby bookings even when the app is in the background.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "We need storage access to upload images and documents.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need storage access to upload images and documents.";
@@ -364,6 +365,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Find-Taxi-Cab-Driver-Info.plist";
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app needs access to your camera to capture a profile image.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Your location is used to provide accurate ETAs, track active trips, and assign nearby bookings even when the app is in the background.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "We need storage access to upload images and documents.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need storage access to upload images and documents.";

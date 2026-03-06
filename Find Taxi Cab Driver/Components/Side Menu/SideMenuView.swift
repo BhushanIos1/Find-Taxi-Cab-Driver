@@ -12,7 +12,7 @@ struct SideMenuView: View {
     @Binding var presentSideMenu: Bool
     var onMenuSelected: (SideMenuRowType) -> Void
     
-    @State private var selectedRow: SideMenuRowType = .home
+    @State private var selectedRow: SideMenuRowType = .jobHistory
     
     var body: some View {
         
@@ -67,11 +67,11 @@ private extension SideMenuView {
             
             VStack(spacing: 5) {
                 
-                Text("Welcome")
+                Text("Bhushan Kumar")
                     .font(AppFont.font(.medium, size: 20))
                     .foregroundColor(.white)
                 
-                Text("Bhushan Kumar")
+                Text("Elite Driver")
                     .font(AppFont.font(.regular, size: 16))
                     .foregroundColor(.white)
             }
@@ -95,9 +95,10 @@ private extension SideMenuView {
             
             HStack(spacing: 15) {
                 
-                Image(imageName)
+                Image(systemName: imageName)
                     .resizable()
                     .scaledToFill()
+                    .foregroundColor(.primary)
                     .frame(width: 22, height: 22)
                 
                 Text(title)

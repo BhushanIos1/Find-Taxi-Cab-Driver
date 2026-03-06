@@ -7,43 +7,59 @@
 
 import SwiftUI
 
-struct HistoryScreen: View {
+struct JobHistoryScreen: View {
     
     @EnvironmentObject
     private var router: AppRouter
     
-    let bookings: [BookingItem] = [
-        BookingItem(
-            dateTime: "15/02/2026   00:05:05",
-            price: "£81.60",
-            bookingNo: "943",
-            carRegNo: "N44BYG",
-            addressLine: "22 Cornmill Dr, Liversedge WF15, UK, Sheffield, UK",
-            status: .completed
+    let bookings: [JobHistoryModel] = [
+        JobHistoryModel(
+            status: "Abandoned",
+            jobNumber: "932",
+            jobDate: "07/02/2026",
+            time: "13:39:37",
+            pickup: "Hindmotor, Uttarpara, West Bengal, India",
+            drop: "Rishra, Pandit Satghara, West Bengal, India",
+            paymentMode: "Cash",
+            specialMessage: "",
+            specialNeed: "No",
+            fare: "£ 0"
         ),
-        BookingItem(
-            dateTime: "15/02/2026   00:05:05",
-            price: "£81.60",
-            bookingNo: "943",
-            carRegNo: "N44BYG",
-            addressLine: "22 Cornmill Dr, Liversedge WF15, UK, Sheffield, UK",
-            status: .cancelled
+        JobHistoryModel(
+            status: "Abandoned",
+            jobNumber: "932",
+            jobDate: "07/02/2026",
+            time: "13:39:37",
+            pickup: "Hindmotor, Uttarpara, West Bengal, India",
+            drop: "Rishra, Pandit Satghara, West Bengal, India",
+            paymentMode: "Cash",
+            specialMessage: "",
+            specialNeed: "No",
+            fare: "£ 0"
         ),
-        BookingItem(
-            dateTime: "15/02/2026   00:05:05",
-            price: "£81.60",
-            bookingNo: "943",
-            carRegNo: "N44BYG",
-            addressLine: "22 Cornmill Dr, Liversedge WF15, UK, Sheffield, UK",
-            status: .pending
+        JobHistoryModel(
+            status: "Abandoned",
+            jobNumber: "932",
+            jobDate: "07/02/2026",
+            time: "13:39:37",
+            pickup: "Hindmotor, Uttarpara, West Bengal, India",
+            drop: "Rishra, Pandit Satghara, West Bengal, India",
+            paymentMode: "Cash",
+            specialMessage: "",
+            specialNeed: "No",
+            fare: "£ 0"
         ),
-        BookingItem(
-            dateTime: "15/02/2026   00:05:05",
-            price: "£81.60",
-            bookingNo: "943",
-            carRegNo: "N44BYG",
-            addressLine: "22 Cornmill Dr, Liversedge WF15, UK, Sheffield, UK",
-            status: .completed
+        JobHistoryModel(
+            status: "Abandoned",
+            jobNumber: "932",
+            jobDate: "07/02/2026",
+            time: "13:39:37",
+            pickup: "Hindmotor, Uttarpara, West Bengal, India",
+            drop: "Rishra, Pandit Satghara, West Bengal, India",
+            paymentMode: "Cash",
+            specialMessage: "",
+            specialNeed: "No",
+            fare: "£ 0"
         )
     ]
     
@@ -55,14 +71,14 @@ struct HistoryScreen: View {
                 
                 LazyVStack(spacing: 20) {
                     ForEach(bookings) { booking in
-                        BookingListCell(item: booking)
+                        JobHistoryCell(item: booking)
                     }
                 }
-                .padding(.vertical, 20)
+                .padding(20)
             }
         }
         .appNavigationBar(
-            title: "History",
+            title: "Job History",
             leading: .back) {
                 router.pop()
             }
@@ -70,5 +86,5 @@ struct HistoryScreen: View {
 }
 
 #Preview {
-    HistoryScreen()
+    JobHistoryScreen()
 }

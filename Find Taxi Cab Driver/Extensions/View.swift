@@ -12,6 +12,7 @@ extension View {
     func appNavigationBar(
         title: String,
         leading: NavBarLeadingType,
+        toggleBinding: Binding<Bool>? = nil,
         onMenuTap: (() -> Void)? = nil
     ) -> some View {
         
@@ -19,6 +20,7 @@ extension View {
             AppNavigationBar(
                 title: title,
                 leading: leading,
+                toggleBinding: toggleBinding,
                 onMenuTap: onMenuTap
             )
         )

@@ -53,7 +53,7 @@ private extension ChangePassword {
             router.pop()
         } label: {
             
-            Text("UPDATE")
+            Text("CHANGE PASSWORD")
                 .primaryButtonStyle()
         }
     }

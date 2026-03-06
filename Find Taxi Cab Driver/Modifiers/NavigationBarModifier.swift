@@ -11,6 +11,9 @@ struct AppNavigationBar: ViewModifier {
     
     let title: String
     let leading: NavBarLeadingType
+    
+    var toggleBinding: Binding<Bool>? = nil
+    
     var onMenuTap: (() -> Void)?
     
     func body(content: Content) -> some View {
@@ -20,7 +23,8 @@ struct AppNavigationBar: ViewModifier {
             CustomNavigationBar(
                 title: title,
                 leadingType: leading,
-                onMenuTap: onMenuTap
+                onMenuTap: onMenuTap,
+                toggleBinding: toggleBinding
             )
             
             content

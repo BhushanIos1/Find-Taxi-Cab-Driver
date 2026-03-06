@@ -8,28 +8,24 @@
 import SwiftUI
 
 enum SideMenuRowType: Int, CaseIterable {
-    case home = 0
-    case history
-    case booking
+    case jobHistory
+    case paymentHistory
+    case bankDetails
+    case profile
+    case changePassword
     case emergency
-    case setting
-    case promotion
-    case share
-    case about
-    case help
+    case bookingPage
     case logout
     
     var title: String {
         switch self {
-        case .home: return "Home"
-        case .history: return "History"
-        case .booking: return "Booking Page"
-        case .emergency: return "Emergency Call"
-        case .setting: return "Settings"
-        case .promotion: return "Promotions"
-        case .share: return "Share"
-        case .about: return "About"
-        case .help: return "Help"
+        case .jobHistory: return "Job History"
+        case .paymentHistory: return "Payment History"
+        case .bankDetails: return "Bank Details"
+        case .profile: return "Profile"
+        case .changePassword: return "Change Password"
+        case .emergency: return "Emergency"
+        case .bookingPage: return "Booking Page"
         case .logout: return "Logout"
         }
     }
@@ -37,16 +33,14 @@ enum SideMenuRowType: Int, CaseIterable {
     var iconName: String {
         
         switch self {
-        case .home: return "menu1"
-        case .history: return "menu2"
-        case .booking: return "menu3"
-        case .emergency: return "menu4"
-        case .setting: return "menu5"
-        case .promotion: return "menu6"
-        case .share: return "menu7"
-        case .about: return "menu8"
-        case .help: return "menu9"
-        case .logout: return "menu10"
+        case .jobHistory: return "clock.arrow.trianglehead.counterclockwise.rotate.90"
+        case .paymentHistory: return "creditcard"
+        case .bankDetails: return "building.columns.fill"
+        case .profile: return "person.fill"
+        case .changePassword: return "exclamationmark.lock.fill"
+        case .emergency: return "phone.fill"
+        case .bookingPage: return "book.closed.fill"
+        case .logout: return "rectangle.portrait.and.arrow.right"
         }
     }
 }

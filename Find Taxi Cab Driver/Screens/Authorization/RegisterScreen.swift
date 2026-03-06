@@ -26,15 +26,6 @@ struct RegisterScreen: View {
     
     @State private var address = ""
     
-    @State private var postCard = ""
-    
-    @State private var cardNumber = ""
-    
-    @State private var nameOnCard = ""
-    
-    @State private var month = ""
-    @State private var year = ""
-    
     var body: some View {
         
         VStack(spacing: 0) {
@@ -44,14 +35,9 @@ struct RegisterScreen: View {
                 VStack(spacing: 22) {
                     AppTextField(title: "Name", text: $name, error: nameError)
                     AppTextField(title: "Email", text: $email, error: emailError, keyboard: .emailAddress)
-                    AppTextField(title: "Phone Number", text: $phone, error: phoneError, keyboard: .phonePad)
+                    AppTextField(title: "Mobile Number", text: $phone, error: phoneError, keyboard: .phonePad)
                     AppPasswordField(title: "Password", password: $password, error: passwordError)
                     AppTextField(title: "Address", text: $address, error: nil)
-                    AppTextField(title: "Post Card", text: $postCard, error: nil)
-                    AppTextField(title: "Card Number", text: $cardNumber, error: nil, keyboard: .numberPad)
-                    AppTextField(title: "Name On Card", text: $nameOnCard, error: nil)
-                    
-                    ExpiryDateField(month: $month, year: $year)
                 }
             }
             .padding(.vertical, 25)

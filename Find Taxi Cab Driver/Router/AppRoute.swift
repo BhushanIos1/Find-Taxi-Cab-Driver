@@ -16,13 +16,11 @@ enum AppRoute: Hashable {
 
     // Menu App
     case home
-    case history
-    case booking
-    case emergency
-    case setting
+    case jobHistory
+    case paymentHistory
+    case bankDetails
+    case profile
     case changePassword
-    case editCardDetails
-    case promotion
-    case about
-    case help
+    case emergency
+    case booking
 }
