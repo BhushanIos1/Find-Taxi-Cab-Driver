@@ -15,7 +15,7 @@ struct HomeScreen: View {
     @State private var presentSideMenu = false
     
     @StateObject
-    private var locationManager = LocationManager()
+    private var locationService = LocationService()
     
     @State private var showShareSheet = false
     @State private var showLogoutAlert = false
@@ -24,17 +24,19 @@ struct HomeScreen: View {
     
     @State private var status: DriverStatus = .free
     
+    @State private var showRidePopup = false
+    
     var body: some View {
         
         ZStack {
             
-            Color.white
+            GoogleMapView()
                 .ignoresSafeArea()
             
-            homeContentView
-        }
-        .safeAreaInset(edge: .bottom) {
-            bottomSection
+            VStack {
+                Spacer()
+                bottomSection
+            }
         }
         .appNavigationBar(
             title: "Home",
@@ -43,6 +45,9 @@ struct HomeScreen: View {
             withAnimation(.easeInOut) {
                 presentSideMenu.toggle()
             }
+        }
+        .onAppear {
+            locationService.requestLocation()
         }
         .alert("Logout",
                isPresented: $showLogoutAlert) {
@@ -74,52 +79,20 @@ struct HomeScreen: View {
                 )
             )
         }
-    }
-}
-
-/*
- if #available(iOS 17.0, *) {
- Map(
- position: .constant(
- .region(locationManager.region)
- )
- ) {
- if let coordinate = locationManager.userLocation {
- Marker("You are here", coordinate: coordinate)
- }
- }
- .mapControls {
- MapUserLocationButton()
- MapCompass()
- MapScaleView()
- }
- .ignoresSafeArea()
- } else {
- // Fallback on earlier versions
- }
- */
-
-private extension HomeScreen {
-    
-    var homeContentView: some View {
-        
-        ScrollView(showsIndicators: false) {
-            
-            VStack(spacing: 0) {
-                
-                Image("loginLogo")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 120)
-                    .padding(.top, 120)
-                
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(height: 40)
+        .rideRequestPopup(
+            isPresented: $showRidePopup,
+            pickup: "AD 361, Kali mandir, Sarat Pally Karunamoyee...",
+            drop: "Sealdah Station Sealdah, Raja Bazar, Calcutta...",
+            needs: "None"
+        )
+        .inputPopup(
+                isPresented: $showRidePopup,
+                title: "Reason For Cancellation :",
+                placeholder: "Type here...",
+                buttonTitle: "SUBMIT"
+            ) { text in
+                print("User Input:", text)
             }
-            .padding(.horizontal, 20)
-            .frame(maxWidth: .infinity)
-        }
     }
 }
 
@@ -129,25 +102,39 @@ private extension HomeScreen {
         
         DriverStatusToggle(status: $status)
             .frame(width: 260)
-    }
-    
-    private func validateAndLogin() {
         
-        //        emailError = email.isEmpty
-        //        ? "Email required"
-        //        : (!ValidationHelper.isValidEmail(email)
-        //           ? "Invalid email"
-        //           : nil)
-        //
-        //        passwordError = password.isEmpty
-        //        ? "Password required"
-        //        : nil
-        //
-        //        guard emailError == nil,
-        //              passwordError == nil else { return }
-        
-        print("✅ Login Success")
-        router.push(.home)
+        /*VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                
+                ActionButtonView(
+                    title: "ON BOARD",
+                    backgroundColor: AppColors.greenAppColor
+                ) {
+                }
+                
+                ActionButtonView(
+                    title: "CANCEL",
+                    backgroundColor: .red
+                ) {
+                }
+            }
+            
+            HStack(spacing: 8) {
+                
+                ActionButtonView(
+                    title: "SEND SMS",
+                    backgroundColor: AppColors.primaryYellow
+                ) {
+                }
+                
+                ActionButtonView(
+                    title: "MAKE CALL",
+                    backgroundColor: AppColors.appBlueColor
+                ) {
+                }
+            }
+        }
+        .padding(.horizontal, 20)*/
     }
 }
 

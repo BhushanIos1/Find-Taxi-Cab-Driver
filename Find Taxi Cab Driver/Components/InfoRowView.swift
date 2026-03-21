@@ -8,11 +8,24 @@
 import SwiftUI
 
 struct InfoRowView: View {
+    
+    let title: String
+    let value: String
+    
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        HStack(alignment: .top, spacing: 22) {
+            
+            Text(title)
+                .font(AppFont.font(.semiBold, size: 16))
+                .frame(width: 120, alignment: .leading)
+            
+            Text(value)
+                .font(AppFont.font(.regular, size: 16))
+                .multilineTextAlignment(.leading)
+        }
     }
 }
 
 #Preview {
-    InfoRowView()
+    InfoRowView(title: "", value: "")
 }

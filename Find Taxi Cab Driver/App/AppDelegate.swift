@@ -9,6 +9,7 @@ import UIKit
 import UserNotifications
 import IQKeyboardManagerSwift
 import IQKeyboardToolbarManager
+import GoogleMaps
 
 class AppDelegate: NSObject,
                    UIApplicationDelegate,
@@ -27,7 +28,12 @@ class AppDelegate: NSObject,
         IQKeyboardToolbarManager.shared.isEnabled = true
         IQKeyboardToolbarManager.shared.toolbarConfiguration.tintColor = UIColor.black
         IQKeyboardToolbarManager.shared.toolbarConfiguration.previousNextDisplayMode = .alwaysShow
+        
+        GMSServices.provideAPIKey(MapAPIKey.apiKey)
         return true
     }
 }
 
+struct MapAPIKey {
+    static let apiKey = "AIzaSyAu8-FoJEb1KdqY5ZBBSFoIGx_FMCcYgvo"
+}

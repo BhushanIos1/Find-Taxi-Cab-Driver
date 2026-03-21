@@ -1,0 +1,6 @@
+framework module SSOTPPinView {
+  umbrella header "SSOTPPinView-umbrella.h"
+
+  export *
+  module * { export * }
+}

@@ -11,60 +11,92 @@ struct ReceiptView: View {
     
     @Environment(\.colorScheme) var colorScheme
     
-    @State private var isTipSelected = false
+    let pickupLocation: String
+    let dropLocation: String
+    
+    @State private var isTollSelected = false
     @State private var rating: Int = 5
+    @State private var fare: String = ""
+    @State private var tollCharge: String = ""
     @State private var comment: String = ""
+    
+    @FocusState private var isFareFocused: Bool
+    @FocusState private var isTollFocused: Bool
+    @FocusState private var isCommentFocused: Bool
     
     var body: some View {
         
         VStack(alignment: .leading, spacing: 18) {
             
-            Text("RECEIPT")
+            Text("TRIP FARE")
                 .font(AppFont.font(.medium, size: 20))
             
             Divider()
             
-            // FARE DETAILS
-            fareRow(title: "Base Fare (£)", value: "15.50")
-            fareRow(title: "Booking Fee (£)", value: "1.0")
+            InfoRowView(
+                title: "Source",
+                value: pickupLocation
+            )
             
-            Divider()
+            InfoRowView(
+                title: "Destination",
+                value: dropLocation
+            )
             
-            // TOTAL
-            HStack {
+            VStack(spacing: 6) {
                 
-                Spacer()
+                TextField("Enter Fare (£)", text: $fare)
+                    .keyboardType(.decimalPad)
+                    .focused($isFareFocused)
+                    .font(AppFont.font(.semiBold, size: 20))
+                    .tint(AppColors.primaryYellow)
                 
-                Text("Total Fare (£)")
-                
-                Text("16.50")
+                Rectangle()
+                    .frame(height: 1)
+                    .foregroundColor(isFareFocused ? AppColors.primaryYellow : .gray.opacity(0.5))
+                    .animation(.easeInOut(duration: 0.2), value: isFareFocused)
             }
-            .font(AppFont.font(.semiBold, size: 20))
-            .foregroundColor(AppColors.grayDarkColor)
+            .padding(.vertical, 15)
             
-            // TIP CHECKBOX
             HStack {
                 Button {
-                    isTipSelected.toggle()
+                    isTollSelected.toggle()
                 } label: {
-                    Image(systemName: isTipSelected ? "checkmark.square.fill" : "square")
+                    Image(systemName: isTollSelected ? "checkmark.square.fill" : "square")
+                        .resizable()
+                        .frame(width: 24, height: 24)
                         .foregroundColor(colorScheme == .dark
                                          ? Color.white
                                          : Color.black)
-                        .frame(width: 26, height: 26)
                 }
                 
-                Text("Drive Tip (£)")
+                Text("Toll and Congestion Charges")
                     .font(AppFont.font(.regular, size: 20))
             }
-            .padding(.bottom, 10)
+            
+            if isTollSelected {
+                
+                VStack(spacing: 6) {
+                    
+                    TextField("Extra Charges (from £2 upto)", text: $tollCharge)
+                        .keyboardType(.decimalPad)
+                        .focused($isTollFocused)
+                        .font(AppFont.font(.regular, size: 16))
+                        .tint(AppColors.primaryYellow)
+                    
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(isTollFocused ? AppColors.primaryYellow : .gray.opacity(0.5))
+                        .animation(.easeInOut(duration: 0.2), value: isTollFocused)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
             
             // RATING
             VStack(alignment: .leading, spacing: 10) {
                 
-                Text("Rate Driver")
+                Text("Rate Customer")
                     .font(AppFont.font(.semiBold, size: 20))
-                    .foregroundColor(AppColors.grayDarkColor)
                 
                 HStack(spacing: 6) {
                     ForEach(1...5, id: \.self) { index in
@@ -78,19 +110,20 @@ struct ReceiptView: View {
                     }
                 }
             }
-            .padding(.bottom, 10)
+            .padding(.vertical, 15)
             
             // COMMENT
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(spacing: 6) {
                 
-                Text("Comment")
+                TextField("Comment", text: $comment)
+                    .focused($isCommentFocused)
                     .font(AppFont.font(.semiBold, size: 20))
-                    .foregroundColor(AppColors.grayDarkColor)
+                    .tint(AppColors.primaryYellow)
                 
-                TextField("Write here...", text: $comment)
-                    .textFieldStyle(.plain)
-                
-                Divider()
+                Rectangle()
+                    .frame(height: 1)
+                    .foregroundColor(isCommentFocused ? AppColors.primaryYellow : .gray.opacity(0.5))
+                    .animation(.easeInOut(duration: 0.2), value: isCommentFocused)
             }
             .padding(.bottom, 10)
             
@@ -126,7 +159,7 @@ struct ReceiptView: View {
                 .fill(colorScheme == .dark
                       ? Color(.systemGray6)
                       : Color(.white))
-                .shadow(radius: 10)
+                .shadow(radius: 5)
         )
         .padding(20)
     }
@@ -148,5 +181,6 @@ private extension ReceiptView {
 }
 
 #Preview {
-    ReceiptView()
+    ReceiptView(pickupLocation: "AD 361, Kali mandir, Sarat Pally Karunamoyee...",
+                dropLocation: "Sealdah Station Sealdah, Raja Bazar, Calcutta...")
 }

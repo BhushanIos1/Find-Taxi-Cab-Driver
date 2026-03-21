@@ -26,6 +26,16 @@ struct ChangePassword: View {
                 
                 VStack(spacing: 22) {
                     
+//                    SSOTPPinView(textFieldType: .box, numberOfCount: 6, keyboardOptions: .customNormalDigits) { newValue in
+//                        print(newValue)
+//                    }
+//                    .textColor(AppColors.primaryYellow)
+//                    .fontWeight(.semibold)
+//                    .lineColor(AppColors.primaryYellow)
+//                    .lineWidth(1)
+//                    .keyFontColor(AppColors.primaryYellow)
+//                    .keyStrokeColor(AppColors.primaryYellow)
+                    
                     AppPasswordField(title: "New Password", password: $newPassword, error: newPasswordError)
                     
                     AppPasswordField(title: "Confirm New Password", password: $confirmNewPassword, error: confirmNewPasswordError)

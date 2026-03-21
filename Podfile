@@ -9,4 +9,6 @@ target 'Find Taxi Cab Driver' do
   pod 'IQKeyboardManagerSwift'
   pod 'IQKeyboardToolbarManager'
 
+  pod 'GoogleMaps'
+  pod 'SSOTPPinView'
 end

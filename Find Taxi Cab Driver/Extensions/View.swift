@@ -44,6 +44,49 @@ extension View {
             )
         )
     }
+    
+    func rideRequestPopup(
+        isPresented: Binding<Bool>,
+        pickup: String,
+        drop: String,
+        needs: String
+    ) -> some View {
+        
+        self.overlay {
+            if isPresented.wrappedValue {
+                RideRequestPopup(
+                    isPresented: isPresented,
+                    pickupLocation: pickup,
+                    dropLocation: drop,
+                    specialNeeds: needs
+                )
+                .transition(.opacity.combined(with: .scale))
+                .zIndex(999)
+            }
+        }
+    }
+    
+    func inputPopup(
+        isPresented: Binding<Bool>,
+        title: String,
+        placeholder: String,
+        buttonTitle: String,
+        onSubmit: @escaping (String) -> Void
+    ) -> some View {
+        
+        self.overlay {
+            if isPresented.wrappedValue {
+                CancelPopupView(
+                    isPresented: isPresented,
+                    title: title,
+                    placeholder: placeholder,
+                    buttonTitle: buttonTitle,
+                    onSubmit: onSubmit
+                )
+                .zIndex(9999)
+            }
+        }
+    }
 }
 
 extension Bundle {
