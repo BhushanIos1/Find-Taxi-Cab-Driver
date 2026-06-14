@@ -7,12 +7,30 @@
 
 import SwiftUI
 
-struct AuthManager: View {
-    var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+final class AuthManager {
+    
+    static let shared = AuthManager()
+    
+    @AppStorage("driverId") var driverId: String = ""
+    @AppStorage("token") var token: String = ""
+    @AppStorage("workStatus") var workStatus: String = ""
+    
+    private init() {}
+    
+    var isLoggedIn: Bool {
+        !driverId.isEmpty
     }
-}
-
-#Preview {
-    AuthManager()
+    
+    func saveLogin(driverId: String, token: String?, status: String?) {
+        self.driverId = driverId
+        self.token = token ?? ""
+        self.workStatus = status ?? ""
+    }
+    
+    func logout() {
+        driverId = ""
+        token = ""
+        workStatus = ""
+        FCMTokenManager.shared.clearToken()
+    }
 }

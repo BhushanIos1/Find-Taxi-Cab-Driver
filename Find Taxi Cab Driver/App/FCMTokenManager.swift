@@ -6,13 +6,43 @@
 //
 
 import SwiftUI
+import FirebaseMessaging
 
-struct FCMTokenManager: View {
-    var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+final class FCMTokenManager: ObservableObject {
+    
+    static let shared = FCMTokenManager()
+    
+    @AppStorage("fcmToken") private var storedToken: String = ""
+    
+    private init() {}
+    
+    var token: String? {
+        storedToken.isEmpty ? nil : storedToken
     }
-}
-
-#Preview {
-    FCMTokenManager()
+    
+    func getToken() -> String? {
+        token
+    }
+    
+    func refreshToken(completion: ((String?) -> Void)? = nil) {
+        Messaging.messaging().token { [weak self] token, error in
+            
+            guard let self = self else { return }
+            
+            if let token = token {
+                self.storedToken = token
+                completion?(token)
+            } else {
+                completion?(nil)
+            }
+        }
+    }
+    
+    func updateToken(_ token: String) {
+        storedToken = token
+    }
+    
+    func clearToken() {
+        storedToken = ""
+    }
 }

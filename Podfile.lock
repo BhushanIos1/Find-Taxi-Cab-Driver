@@ -1,4 +1,5 @@
 PODS:
+  - Alamofire (5.11.0)
   - GoogleMaps (10.7.0):
     - GoogleMaps/Maps (= 10.7.0)
   - GoogleMaps/Maps (10.7.0)
@@ -43,6 +44,7 @@ PODS:
   - SSOTPPinView (1.0.1)
 
 DEPENDENCIES:
+  - Alamofire
   - GoogleMaps
   - IQKeyboardManagerSwift
   - IQKeyboardToolbarManager
@@ -50,6 +52,7 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - Alamofire
     - GoogleMaps
     - IQKeyboardCore
     - IQKeyboardManagerSwift
@@ -62,6 +65,7 @@ SPEC REPOS:
     - SSOTPPinView
 
 SPEC CHECKSUMS:
+  Alamofire: bd5e7b23a1a750975288482c1831d71e74415f86
   GoogleMaps: 5db81729b4f6defd40820d46b49a350273ec1d28
   IQKeyboardCore: 8652977ec919cf5351aa2977fedd1a6546476fbc
   IQKeyboardManagerSwift: 835fc9c6e4732398113406d84900ad2e8f141218
@@ -73,6 +77,6 @@ SPEC CHECKSUMS:
   IQTextView: ae13b4922f22e6f027f62c557d9f4f236b19d5c7
   SSOTPPinView: 01c9373f41fe9a5d24522341e2e0910aefd695b6
 
-PODFILE CHECKSUM: 2cd33339ebd9d366843371c165b133f708e25eb8
+PODFILE CHECKSUM: a5ee80a080c299575de387f5b73c192338aeb123
 
 COCOAPODS: 1.16.2

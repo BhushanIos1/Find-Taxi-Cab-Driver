@@ -11,4 +11,6 @@ target 'Find Taxi Cab Driver' do
 
   pod 'GoogleMaps'
   pod 'SSOTPPinView'
+  
+  pod 'Alamofire'
 end

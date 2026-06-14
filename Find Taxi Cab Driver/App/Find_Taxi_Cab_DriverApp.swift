@@ -18,7 +18,13 @@ struct Find_Taxi_Cab_DriverApp: App {
     
     @StateObject
     private var router = AppRouter()
-        
+    
+    @StateObject
+    private var appState = AppState.shared
+    
+    @StateObject
+    private var toastManager = ToastManager()
+    
     var body: some Scene {
         
         WindowGroup {
@@ -31,9 +37,10 @@ struct Find_Taxi_Cab_DriverApp: App {
                         RouteBuilder.build(route)
                     }
             }
-            
             .environmentObject(router)
             .environmentObject(launchManager)
+            .environmentObject(appState)
+            .environmentObject(toastManager)
         }
     }
 }
@@ -43,21 +50,18 @@ struct RootView: View {
     @EnvironmentObject
     private var launchManager: AppLaunchManager
     
+    @EnvironmentObject
+    private var appState: AppState
+    
     var body: some View {
         
         if launchManager.shouldShowPermission {
-            
             PermissionScreen()
-            
-        }
-        //        else if !launchManager.isLoggedIn {
-        //
-        //            RegisterScreen()
-        //
-        //        }
-        else {
-            
-            LandingScreen() //Home
+        } else if appState.isLoggedIn {
+            let driverStatus: DriverStatus = AuthManager.shared.workStatus == "free" ? .free : .busy
+            HomeScreen(status: driverStatus)
+        } else {
+            LandingScreen()
         }
     }
 }

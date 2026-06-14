@@ -15,7 +15,8 @@ struct RouteBuilder {
         switch route {
             
         case .home:
-            HomeScreen()
+            let driverStatus: DriverStatus = AuthManager.shared.workStatus == "free" ? .free : .busy
+            HomeScreen(status: driverStatus)
             
         case .jobHistory:
             JobHistoryScreen()
@@ -46,6 +47,9 @@ struct RouteBuilder {
             
         case .registration:
             RegisterScreen()
+            
+        case .landingPage:
+            LandingScreen()
         }
     }
 }

@@ -13,6 +13,7 @@ enum AppRoute: Hashable {
     case registration
     case login
     case forgotPassword
+    case landingPage
 
     // Menu App
     case home

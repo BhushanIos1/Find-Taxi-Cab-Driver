@@ -22,9 +22,16 @@ struct HomeScreen: View {
     
     @State private var isOnline = true
     
-    @State private var status: DriverStatus = .free
+    @State private var status: DriverStatus
     
     @State private var showRidePopup = false
+    
+    @StateObject
+    private var viewModel = RegisterViewModel()
+    
+    init(status: DriverStatus) {
+        _status = State(initialValue: status)
+    }
     
     var body: some View {
         
@@ -55,7 +62,9 @@ struct HomeScreen: View {
             Button("NO", role: .cancel) { }
             
             Button("YES", role: .destructive) {
-                //performLogout()
+                viewModel.logOut(id: "\(AuthManager.shared.driverId)", router: router)
+                
+                router.push(.landingPage)
             }
         } message: {
             Text("Are you sure you want to log out?")
@@ -172,5 +181,5 @@ private extension HomeScreen {
 }
 
 #Preview {
-    HomeScreen()
+    HomeScreen(status: .free)
 }

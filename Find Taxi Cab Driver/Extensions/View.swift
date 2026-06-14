@@ -87,6 +87,18 @@ extension View {
             }
         }
     }
+    
+    func showToast(isPresented: Binding<Bool>, type: ToastType, title: String, subtitle: String? = nil, onUndo: (() -> Void)? = nil) -> some View {
+        self.overlay(
+            ZStack {
+                if isPresented.wrappedValue {
+                    ToastView(toastType: type, title: title, subtitle: subtitle, onUndo: onUndo)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .zIndex(1)
+                }
+            }
+        )
+    }
 }
 
 extension Bundle {

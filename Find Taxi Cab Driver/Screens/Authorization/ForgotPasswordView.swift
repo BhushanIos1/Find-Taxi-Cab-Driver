@@ -37,7 +37,8 @@ struct ForgotPasswordView: View {
                         title: "Email",
                         text: $email,
                         error: emailError,
-                        keyboard: .emailAddress
+                        keyboard: .emailAddress,
+                        foregroundColor: .black
                     )
                     .padding(10)
                     .background(.white)

@@ -8,11 +8,26 @@
 import SwiftUI
 
 struct GlobalToastView: View {
+    
+    @EnvironmentObject var toastManager: ToastManager
+    
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        
+        ZStack(alignment: .top) {
+            
+            VStack {
+                
+                if toastManager.isPresented {
+                    ToastView(toastType: toastManager.toastType,
+                              title: toastManager.title,
+                              subtitle: toastManager.subtitle,
+                              onUndo: { toastManager.isPresented = false })
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .padding()
+                }
+                Spacer()
+            }
+        }
+        .animation(.easeInOut, value: toastManager.isPresented)
     }
-}
-
-#Preview {
-    GlobalToastView()
 }
