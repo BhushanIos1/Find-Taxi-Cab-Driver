@@ -15,8 +15,7 @@ struct RouteBuilder {
         switch route {
             
         case .home:
-            let driverStatus: DriverStatus = AuthManager.shared.workStatus == "free" ? .free : .busy
-            HomeScreen(status: driverStatus)
+            HomeScreen()
             
         case .jobHistory:
             JobHistoryScreen()

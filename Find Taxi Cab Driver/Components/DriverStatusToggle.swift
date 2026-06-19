@@ -7,14 +7,16 @@
 
 import SwiftUI
 
-enum DriverStatus {
-    case free
-    case busy
+enum DriverStatus: String {
+    case free = "free"
+    case busy = "busy"
 }
 
 struct DriverStatusToggle: View {
     
     @Binding var status: DriverStatus
+    
+    let onToggle: () -> Void
     
     private let height: CGFloat = 90
     private let circleSize: CGFloat = 82
@@ -52,7 +54,8 @@ private extension DriverStatusToggle {
         }
         .contentShape(RoundedRectangle(cornerRadius: 20))
         .onTapGesture {
-            toggle()
+            Haptic.medium()
+            onToggle()
         }
     }
 }
@@ -94,17 +97,4 @@ private extension DriverStatusToggle {
             .font(AppFont.font(.regular, size: 16))
             .foregroundColor(.black)
     }
-}
-
-private extension DriverStatusToggle {
-    
-    func toggle() {
-        Haptic.medium()
-        status = (status == .free) ? .busy : .free
-    }
-}
-
-#Preview {
-    DriverStatusToggle(status: .constant(.busy))
-        .frame(width: 212)
 }

@@ -22,16 +22,15 @@ struct HomeScreen: View {
     
     @State private var isOnline = true
     
-    @State private var status: DriverStatus
-    
     @State private var showRidePopup = false
+    
+    @StateObject
+    private var homeViewModel = HomeViewModel()
     
     @StateObject
     private var viewModel = RegisterViewModel()
     
-    init(status: DriverStatus) {
-        _status = State(initialValue: status)
-    }
+    @State private var locationTimer = Timer.publish(every: 20, on: .main, in: .common).autoconnect()
     
     var body: some View {
         
@@ -54,7 +53,19 @@ struct HomeScreen: View {
             }
         }
         .onAppear {
-            locationService.requestLocation()
+            locationService.startTracking()
+            homeViewModel.syncStatusOnAppear()
+        }
+        .onReceive(locationTimer) { _ in
+            
+            guard let location = locationService.currentLocation else {
+                return
+            }
+            
+            homeViewModel.updateLocation(
+                latitude: location.coordinate.latitude,
+                longitude: location.coordinate.longitude
+            )
         }
         .alert("Logout",
                isPresented: $showLogoutAlert) {
@@ -95,13 +106,13 @@ struct HomeScreen: View {
             needs: "None"
         )
         .inputPopup(
-                isPresented: $showRidePopup,
-                title: "Reason For Cancellation :",
-                placeholder: "Type here...",
-                buttonTitle: "SUBMIT"
-            ) { text in
-                print("User Input:", text)
-            }
+            isPresented: $showRidePopup,
+            title: "Reason For Cancellation :",
+            placeholder: "Type here...",
+            buttonTitle: "SUBMIT"
+        ) { text in
+            print("User Input:", text)
+        }
     }
 }
 
@@ -109,41 +120,43 @@ private extension HomeScreen {
     
     var bottomSection: some View {
         
-        DriverStatusToggle(status: $status)
-            .frame(width: 260)
+        DriverStatusToggle(status: $homeViewModel.driverStatus) {
+            homeViewModel.changeStatus()
+        }
+        .frame(width: 260)
         
         /*VStack(spacing: 8) {
-            HStack(spacing: 8) {
-                
-                ActionButtonView(
-                    title: "ON BOARD",
-                    backgroundColor: AppColors.greenAppColor
-                ) {
-                }
-                
-                ActionButtonView(
-                    title: "CANCEL",
-                    backgroundColor: .red
-                ) {
-                }
-            }
-            
-            HStack(spacing: 8) {
-                
-                ActionButtonView(
-                    title: "SEND SMS",
-                    backgroundColor: AppColors.primaryYellow
-                ) {
-                }
-                
-                ActionButtonView(
-                    title: "MAKE CALL",
-                    backgroundColor: AppColors.appBlueColor
-                ) {
-                }
-            }
-        }
-        .padding(.horizontal, 20)*/
+         HStack(spacing: 8) {
+         
+         ActionButtonView(
+         title: "ON BOARD",
+         backgroundColor: AppColors.greenAppColor
+         ) {
+         }
+         
+         ActionButtonView(
+         title: "CANCEL",
+         backgroundColor: .red
+         ) {
+         }
+         }
+         
+         HStack(spacing: 8) {
+         
+         ActionButtonView(
+         title: "SEND SMS",
+         backgroundColor: AppColors.primaryYellow
+         ) {
+         }
+         
+         ActionButtonView(
+         title: "MAKE CALL",
+         backgroundColor: AppColors.appBlueColor
+         ) {
+         }
+         }
+         }
+         .padding(.horizontal, 20)*/
     }
 }
 
@@ -181,5 +194,5 @@ private extension HomeScreen {
 }
 
 #Preview {
-    HomeScreen(status: .free)
+    HomeScreen()
 }

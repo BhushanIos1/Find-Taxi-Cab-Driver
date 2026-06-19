@@ -58,8 +58,7 @@ struct RootView: View {
         if launchManager.shouldShowPermission {
             PermissionScreen()
         } else if appState.isLoggedIn {
-            let driverStatus: DriverStatus = AuthManager.shared.workStatus == "free" ? .free : .busy
-            HomeScreen(status: driverStatus)
+            HomeScreen()
         } else {
             LandingScreen()
         }

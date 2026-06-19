@@ -6,11 +6,15 @@
 //
 
 import SwiftUI
+import SwiftfulLoadingIndicators
 
 struct ProfileView: View {
     
     @EnvironmentObject
     private var router: AppRouter
+    
+    @EnvironmentObject
+    private var toastManager: ToastManager
     
     @State private var selectedImage: UIImage?
     @State private var showImagePicker = false
@@ -26,33 +30,116 @@ struct ProfileView: View {
     @State private var accountNumber = ""
     @State private var accountNumberError: String?
     
+    @StateObject
+    private var viewModel = ProfileViewModel()
+    
     var body: some View {
         
-        VStack(spacing: 0) {
+        ZStack {
             
-            ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
                 
-                VStack(spacing: 25) {
+                ScrollView(showsIndicators: false) {
                     
-                    headerSection
-                    
-                    AppTextField(title: "Name", text: $name, error: nameError)
-                    AppTextField(title: "Mobile Number", text: $phone, error: phoneError, keyboard: .phonePad)
-                    AppTextField(title: "Address", text: $address, error: nil)
-                    AppTextField(title: "Account Number", text: $accountNumber, error: accountNumberError)
+                    VStack(spacing: 25) {
+                        
+                        headerSection
+                        
+                        AppTextField(
+                            title: "Name",
+                            text: $name,
+                            error: nameError,
+                            foregroundColor: Color(uiColor: .label)
+                        )
+                        
+                        AppTextField(
+                            title: "Mobile Number",
+                            text: $phone,
+                            error: phoneError,
+                            keyboard: .phonePad,
+                            foregroundColor: Color(uiColor: .label)
+                        )
+                        
+                        AppTextField(
+                            title: "Address",
+                            text: $address,
+                            error: nil,
+                            foregroundColor: Color(uiColor: .label)
+                        )
+                        
+                        AppTextField(
+                            title: "Account Number",
+                            text: $accountNumber,
+                            error: accountNumberError,
+                            foregroundColor: Color(uiColor: .label)
+                        )
+                        
+                        bottomSection
+                            .padding(.top, 25)
+                    }
                 }
+                .padding(.vertical, 30)
+                .padding(.horizontal, 20)
             }
-            .padding(.vertical, 30)
-            .padding(.horizontal, 20)
+            .disabled(viewModel.isLoading)
+            
+            if viewModel.isLoading {
+                
+                Color.black.opacity(0.25)
+                    .ignoresSafeArea()
+                
+                LoadingIndicator(
+                    animation: .circleTrim,
+                    color: AppColors.primaryYellow,
+                    size: .medium,
+                    speed: .normal
+                )
+            }
         }
         .appNavigationBar(
             title: "Profile",
-            leading: .back) {
-                router.pop()
+            leading: .back
+        ) {
+            router.pop()
+        }
+        .onChange(of: viewModel.registrationState) { state in
+            
+            guard let state else { return }
+            
+            switch state {
+                
+            case .success(let message):
+                
+                toastManager.showToast(
+                    type: .success,
+                    title: "Success",
+                    subtitle: message
+                )
+                
+                viewModel.errorMessage = nil
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    router.pop()
+                }
+                
+            case .failure(let message):
+                
+                toastManager.showToast(
+                    type: .error,
+                    title: "Failed",
+                    subtitle: message
+                )
             }
-            .sheet(isPresented: $showImagePicker) {
-                ImagePicker(image: $selectedImage)
-            }
+            
+            viewModel.registrationState = nil
+        }
+        .overlay(
+            GlobalToastView()
+                .environmentObject(toastManager)
+        )
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(image: $selectedImage)
+        }
     }
 }
 
@@ -109,6 +196,27 @@ private extension ProfileView {
                 .font(AppFont.font(.bold, size: 25))
         }
         .offset(x: 20, y: 20)
+    }
+}
+
+private extension ProfileView {
+    
+    var bottomSection: some View {
+        
+        Button {
+            
+            viewModel.updateProfile(
+                driverName: name,
+                contactNo: phone,
+                address: address,
+                bankAccountNumber: accountNumber,
+                driverPhoto: selectedImage
+            )
+            
+        } label: {
+            Text("Update")
+                .primaryButtonStyle()
+        }
     }
 }
 

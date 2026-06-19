@@ -48,7 +48,7 @@ private extension BookingCell {
     
     var statusHeader: some View {
         
-        Text(item.status)
+        Text(item.status ?? "")
             .font(AppFont.font(.medium, size: 16))
             .foregroundColor(statusColor)
             .frame(maxWidth: .infinity)
@@ -60,7 +60,7 @@ private extension BookingCell {
     
     var statusColor: Color {
         
-        switch item.status.lowercased() {
+        switch item.status?.lowercased() {
         case "completed":
             return .green
         case "abandoned":
@@ -68,7 +68,9 @@ private extension BookingCell {
         case "cancelled":
             return .red
         default:
-            return .black
+            return colorScheme == .dark
+            ? Color(.white)
+            : Color(.black)
         }
     }
 }
@@ -79,12 +81,12 @@ private extension BookingCell {
         
         VStack(spacing: 0) {
             
-            detailRow("Booking Id", item.bookingId)
-            detailRow("Customer Mobile", item.customerMobile)
-            detailRow("Source Address", item.pickup)
-            detailRow("Dest Address", item.drop)
-            detailRow("Booking Date", item.bookingDate)
-            detailRow("Booking Status", item.bookingStatus)
+            detailRow("Booking Id", item.bookingId ?? "")
+            detailRow("Customer Mobile", item.customerMobile ?? "")
+            detailRow("Source Address", item.pickup ?? "")
+            detailRow("Dest Address", item.drop ?? "")
+            detailRow("Booking Date", item.bookingDate ?? "")
+            detailRow("Booking Status", item.bookingStatus ?? "")
         }
     }
 }
@@ -103,10 +105,14 @@ private extension BookingCell {
                 
                 Text("\(title):")
                     .frame(width: 140, alignment: .leading)
-                    .foregroundColor(Color(hex: "#373737"))
+                    .foregroundColor(colorScheme == .dark
+                                     ? Color(.white)
+                                     : Color(hex: "#373737"))
                 
                 Text(value)
-                    .foregroundColor(Color(hex: "#373737"))
+                    .foregroundColor(colorScheme == .dark
+                                     ? Color(.white)
+                                     : Color(hex: "#373737"))
                 
                 Spacer()
             }
@@ -116,7 +122,9 @@ private extension BookingCell {
             
             if showDivider {
                 Divider()
-                    .foregroundStyle(Color(hex: "#EFEFEF"))
+                    .foregroundStyle(colorScheme == .dark
+                                     ? Color(.white)
+                                     : Color(hex: "#EFEFEF"))
             }
         }
     }

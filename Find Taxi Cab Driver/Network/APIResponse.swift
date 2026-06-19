@@ -18,3 +18,8 @@ struct APIResponse<T: Decodable>: Decodable {
         return false
     }
 }
+
+struct CommonResponse: Codable {
+    let result: String?
+    let message: String?
+}

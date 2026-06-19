@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftfulLoadingIndicators
 
 struct BookingScreen: View {
     
@@ -14,15 +15,8 @@ struct BookingScreen: View {
     
     @Environment(\.colorScheme) var colorScheme
     
-    let bookings: [BookingDetailsModel] = [BookingDetailsModel(
-        status: "Booking Page",
-        bookingId: "932",
-        customerMobile: "1234567890",
-        pickup: "Hindmotor, Uttarpara, West Bengal, India",
-        drop: "Rishra, Pandit Satghara, West Bengal, India",
-        bookingDate: "2026-02-07   13:39:00",
-        bookingStatus: "Abandon"
-    )]
+    @StateObject
+    private var viewModel = BookingViewModel()
     
     var body: some View {
         
@@ -32,23 +26,62 @@ struct BookingScreen: View {
                 
                 VStack(alignment: .leading) {
                     
-                    BookingCell(item: bookings.first!)
-                        .padding(20)
+                    //                    if let booking = viewModel.lastBooking {
+                    //                        BookingCell(item: booking)
+                    //                            .padding(20)
+                    //                        Button {
+                    //                            router.pop()
+                    //                        } label: {
+                    //                            Text("CONTINUE")
+                    //                                .primaryButtonStyle()
+                    //                        }
+                    //                        .padding(.horizontal, 20)
+                    //                    } else if let error = viewModel.errorMessage {
+                    //
+                    //                        Text(error)
+                    //.font(AppFont.font(.regular, size: 14))
+                    //                            .frame(maxWidth: .infinity)
+                    //                            .padding(.top, 50)
+                    //
+                    //                    }
                     
-                    Button {
-                        router.pop()
-                    } label: {
-                        Text("CONTINUE")
-                            .primaryButtonStyle()
+                    LazyVStack(spacing: 10) {
+                        
+                        ForEach(viewModel.bookings) { booking in
+                            BookingCell(item: booking)
+                        }
+                        
+                        if let error = viewModel.errorMessage {
+                            Text(error)
+                                .font(AppFont.font(.regular, size: 14))
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 50)
+                        }
                     }
-                    .padding(.horizontal, 20)
                 }
+            }
+            
+            if viewModel.isLoading {
+                
+                Color.black.opacity(0.2)
+                    .ignoresSafeArea()
+                
+                LoadingIndicator(
+                    animation: .circleTrim,
+                    color: AppColors.primaryYellow,
+                    size: .medium,
+                    speed: .normal
+                )
             }
         }
         .appNavigationBar(
             title: "Booking Page",
             leading: .back) {
                 router.pop()
+            }
+            .onAppear {
+                //                viewModel.getLastBooking()
+                viewModel.getBookingList()
             }
     }
 }
