@@ -22,8 +22,8 @@ final class AppState: ObservableObject {
         isLoggedIn = AuthManager.shared.isLoggedIn
     }
     
-    func login(driverId: String, token: String?, status: String?) {
-        AuthManager.shared.saveLogin(driverId: driverId, token: token, status: status)
+    func login(driverId: String, token: String?, status: String?, driverName: String?, driverTitle: String?, email: String?) {
+        AuthManager.shared.saveLogin(driverId: driverId, token: token, status: status, driverName: driverName, driverTitle: driverTitle, email: email)
         isLoggedIn = true
     }
     

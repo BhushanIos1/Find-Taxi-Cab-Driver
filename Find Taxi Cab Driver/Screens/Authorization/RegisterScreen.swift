@@ -97,7 +97,7 @@ struct RegisterScreen: View {
                     viewModel.errorMessage = nil
                     
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        router.push(.home)
+                        router.replaceCurrent(with: .login)
                     }
                     
                 case .failure(let message):

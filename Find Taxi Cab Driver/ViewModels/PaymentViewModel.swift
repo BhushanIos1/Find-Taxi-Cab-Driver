@@ -25,53 +25,58 @@ final class PaymentViewModel: ObservableObject {
     
     // MARK: - Update Bank Details
     
-    func updateBankDetails(accountHolderName: String,
-                           bankName: String,
-                           sortCode: String,
-                           accountNumber: String) {
-        
+    func updateBankDetails(
+        accountHolderName: String,
+        bankName: String,
+        sortCode: String,
+        accountNumber: String
+    ) {
+
         guard !isLoading else { return }
-        
+
         isLoading = true
         errorMessage = nil
-        
-        let parameters: Parameters = [
-            "account_holder_name": accountHolderName,
-            "bank_name": bankName,
-            "sort_code": sortCode,
-            "bank_account_number": accountNumber
-        ]
-        
+
         Task {
-            
+
             defer { isLoading = false }
-            
+
             do {
-                
-                let response: CommonResponse = try await APIClient.shared.request(
-                    DriverAPI.updateBankDetails(
-                        parameters: parameters),
-                    responseType: CommonResponse.self)
-                
+
+                let response = try await APIClient.shared.updateBankDetails(
+                    accountHolderName: accountHolderName,
+                    bankName: bankName,
+                    sortCode: sortCode,
+                    accountNumber: accountNumber
+                )
+
                 if response.result?.lowercased() == "success" {
-                    
+
                     let message = response.message ?? "Bank Details Updated"
+
+                    print("✅ BANK DETAILS UPDATED")
+                    print(message)
+
                     paymentState = .success(message)
-                    
+
                 } else {
-                    
+
                     let message = response.message ?? "Failed To Update Bank Details"
+
+                    print("❌ BANK UPDATE FAILED")
+                    print(message)
+
                     errorMessage = message
                     paymentState = .failure(message)
                 }
-                
+
             } catch {
-                
-                errorMessage = error.localizedDescription
-                paymentState = .failure(error.localizedDescription)
-                
+
                 print("❌ UPDATE BANK ERROR")
                 print(error)
+
+                errorMessage = error.localizedDescription
+                paymentState = .failure(error.localizedDescription)
             }
         }
     }

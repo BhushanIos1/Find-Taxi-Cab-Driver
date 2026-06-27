@@ -14,6 +14,9 @@ final class AuthManager {
     @AppStorage("driverId") var driverId: String = ""
     @AppStorage("token") var token: String = ""
     @AppStorage("workStatus") var workStatus: String = ""
+    @AppStorage("driverName") var driverName: String = ""
+    @AppStorage("driverTitle") var driverTitle: String = ""
+    @AppStorage("email") var email: String = ""
     
     private init() {}
     
@@ -21,16 +24,21 @@ final class AuthManager {
         !driverId.isEmpty
     }
     
-    func saveLogin(driverId: String, token: String?, status: String?) {
+    func saveLogin(driverId: String, token: String?, status: String?, driverName: String?, driverTitle: String?, email: String?) {
         self.driverId = driverId
         self.token = token ?? ""
         self.workStatus = status ?? ""
+        self.driverName = driverName ?? ""
+        self.driverTitle = driverTitle ?? ""
+        self.email = email ?? ""
     }
     
     func logout() {
         driverId = ""
         token = ""
         workStatus = ""
-        FCMTokenManager.shared.clearToken()
+        driverName = ""
+        driverTitle = ""
+        email = ""
     }
 }

@@ -30,6 +30,8 @@ struct BankDetailsView: View {
     
     @StateObject
     private var viewModel = PaymentViewModel()
+    @StateObject
+    private var detailsViewModel = ProfileViewModel()
     
     var body: some View {
         
@@ -80,7 +82,7 @@ struct BankDetailsView: View {
             
             // MARK: Loader
             
-            if viewModel.isLoading {
+            if viewModel.isLoading || detailsViewModel.isLoading {
                 
                 Color.black.opacity(0.25)
                     .ignoresSafeArea()
@@ -99,6 +101,18 @@ struct BankDetailsView: View {
             leading: .back
         ) {
             router.pop()
+        }
+        .onAppear {
+            detailsViewModel.getDriverDetails()
+        }
+        .onChange(of: detailsViewModel.driver) { driver in
+            
+            guard let driver else { return }
+            
+            name = driver.bankAccountName ?? ""
+            bankName = driver.bankName ?? ""
+            sortCode = driver.bankCode ?? ""
+            accountNumber = driver.bankAccountNumber ?? ""
         }
         .onChange(of: viewModel.paymentState) { state in
             

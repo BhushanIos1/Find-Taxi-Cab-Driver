@@ -71,6 +71,11 @@ struct LoginScreen: View {
         ) {
             router.pop()
         }
+        .onAppear {
+            FCMTokenManager.shared.refreshToken { token in
+                print("Fresh FCM:", token ?? "nil")
+            }
+        }
         .onChange(of: viewModel.loginState) { state in
             
             guard let state else { return }

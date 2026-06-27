@@ -121,32 +121,4 @@ final class HomeViewModel: ObservableObject {
             }
         }
     }
-    
-    // MARK: - Update FCM Token
-    
-    func updateDriverToken() {
-        
-        guard let token = FCMTokenManager.shared.getToken(),
-              !token.isEmpty else {
-            
-            print("❌ FCM TOKEN NOT FOUND")
-            return
-        }
-        
-        Task {
-            
-            do {
-                
-                let response: CommonResponse = try await APIClient.shared.request(
-                    DriverAPI.updateFCMToken(token: token),
-                    responseType: CommonResponse.self
-                )
-                
-                print("🔥 TOKEN UPDATED:", response.result ?? "")
-                
-            } catch {
-                print("❌ TOKEN UPDATE ERROR:", error)
-            }
-        }
-    }
 }

@@ -67,11 +67,11 @@ private extension SideMenuView {
             
             VStack(spacing: 5) {
                 
-                Text("Bhushan Kumar")
+                Text("\(AuthManager.shared.driverTitle) \(AuthManager.shared.driverName)")
                     .font(AppFont.font(.medium, size: 20))
                     .foregroundColor(.white)
                 
-                Text("Elite Driver")
+                Text("")
                     .font(AppFont.font(.regular, size: 16))
                     .foregroundColor(.white)
             }

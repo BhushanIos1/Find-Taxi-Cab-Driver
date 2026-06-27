@@ -14,7 +14,7 @@ struct APIResponse<T: Decodable>: Decodable {
     
     var isSuccess: Bool {
         if result == "success" { return true }
-        if success == 1 { return true }
+        if success == 1 || success == 200 { return true }
         return false
     }
 }

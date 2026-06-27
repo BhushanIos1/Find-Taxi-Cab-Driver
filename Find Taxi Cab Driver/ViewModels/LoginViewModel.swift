@@ -60,7 +60,7 @@ final class LoginViewModel: ObservableObject {
                 if response.result == "success", let driver = response.driver_data {
                     
                     print("✅ LOGIN SUCCESS:", driver.id)
-                    AppState.shared.login(driverId: driver.id, token: driver.token, status: driver.workStatus)
+                    AppState.shared.login(driverId: driver.id, token: driver.token, status: driver.workStatus, driverName: driver.driverName, driverTitle: driver.title, email: driver.email)
                     
                     if !fcmToken.isEmpty {
                         updateFCMToken(driverId: driver.id, token: fcmToken)

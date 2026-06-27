@@ -63,10 +63,6 @@ final class RegisterViewModel: ObservableObject {
                     
                     isSuccess = true
                     
-                    AppState.shared.login(
-                        driverId: "\(id)",
-                        token: fcmToken, status: "free")
-                    
                     if !fcmToken.isEmpty {
                         updateFCMToken(driverId: "\(id)", token: fcmToken)
                     }

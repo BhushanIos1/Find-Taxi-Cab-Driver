@@ -15,14 +15,10 @@ final class ProfileViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var registrationState: RegistrationState?
-
-    func updateProfile(
-        driverName: String,
-        contactNo: String,
-        address: String,
-        bankAccountNumber: String,
-        driverPhoto: UIImage?
-    ) {
+    
+    @Published var driver: Driver?
+    
+    func updateProfile(driverName: String, driverPhoto: UIImage?) {
 
         guard !isLoading else { return }
 
@@ -35,25 +31,9 @@ final class ProfileViewModel: ObservableObject {
 
             do {
 
-                let base64Image = driverPhoto?.toBase64()
-                
-                print("""
-                📸 IMAGE BASE64 LENGTH:
-                \(base64Image?.count ?? 0)
-
-                Driver ID:
-                \(AuthManager.shared.driverId)
-                """)
-
-                let response: CommonResponse = try await APIClient.shared.request(
-                    DriverAPI.updateProfile(
-                        driverName: driverName,
-                        contactNo: contactNo,
-                        address: address,
-                        bankAccountNumber: bankAccountNumber,
-                        driverPhoto: base64Image
-                    ),
-                    responseType: CommonResponse.self
+                let response = try await APIClient.shared.uploadProfile(
+                    driverName: driverName,
+                    driverPhoto: driverPhoto
                 )
 
                 if response.result == "success" {
@@ -62,7 +42,6 @@ final class ProfileViewModel: ObservableObject {
 
                     print("✅ PROFILE UPDATED:", message)
 
-                    isSuccess = true
                     registrationState = .success(message)
 
                 } else {
@@ -71,7 +50,6 @@ final class ProfileViewModel: ObservableObject {
 
                     print("❌ PROFILE UPDATE FAILED:", message)
 
-                    errorMessage = message
                     registrationState = .failure(message)
                 }
 
@@ -79,8 +57,43 @@ final class ProfileViewModel: ObservableObject {
 
                 print("❌ PROFILE UPDATE ERROR:", error)
 
-                errorMessage = error.localizedDescription
                 registrationState = .failure(error.localizedDescription)
+            }
+        }
+    }
+    
+    func getDriverDetails() {
+
+        guard !isLoading else { return }
+
+        isLoading = true
+        errorMessage = nil
+
+        Task {
+
+            defer {
+                isLoading = false
+            }
+
+            do {
+
+                let response = try await APIClient.shared.getDriverDetails()
+
+                if response.result == "success" {
+
+                    driver = response.driverData
+
+                    print("✅ DRIVER NAME:", driver?.driverName ?? "")
+
+                } else {
+
+                    errorMessage = response.message
+                }
+
+            } catch {
+
+                errorMessage = error.localizedDescription
+                print(error)
             }
         }
     }

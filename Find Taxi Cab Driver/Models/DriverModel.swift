@@ -11,7 +11,7 @@ struct LoginResponse: Decodable {
     let error: String?
 }
 
-struct Driver: Decodable {
+struct Driver: Decodable, Equatable {
     
     let id: String
     let email: String?

@@ -43,13 +43,14 @@ enum DriverAPI: Endpoint {
     case changePassword(password: String)
     case updateProfile(
         driverName: String,
-        contactNo: String,
-        address: String,
-        bankAccountNumber: String,
-        driverPhoto: String?
+        driverPhoto: String?,
+        licensePhoto: String?,
+        vehicleInsurancePhoto: String?,
+        badgePhoto: String?
     )
     case logout
     case changeStatus(status: String)
+    case getDriverDetails
     case updateLocation(lat: String, lng: String)
     case updateFCMToken(token: String)
     case lastBooking
@@ -74,6 +75,7 @@ extension DriverAPI {
         case .changePassword: return "/driver_change_pass"
         case .updateProfile: return "/update_driver_profile"
         case .logout: return "/logout_driver"
+        case .getDriverDetails: return "/get_driver_details"
         case .changeStatus: return "/change_status"
         case .updateLocation: return "/driver_location"
         case .updateFCMToken: return "/update_drivertoken"
@@ -124,21 +126,24 @@ extension DriverAPI {
             
         case .updateProfile(
             let driverName,
-            let contactNo,
-            let address,
-            let bankAccountNumber,
-            let driverPhoto
+            let driverPhoto,
+            let licensePhoto,
+            let vehicleInsurancePhoto,
+            let badgePhoto
         ):
             return [
                 "driver_id": driverId,
                 "driverName": driverName,
-                "contact_no": contactNo,
-                "address": address,
-                "bank_account_number": bankAccountNumber,
-                "driver_photo": driverPhoto ?? ""
+                "driver_photo": driverPhoto ?? "",
+                "license_photo": licensePhoto ?? "",
+                "badge_photo": badgePhoto ?? "",
+                "vehicle_insurance_photo": vehicleInsurancePhoto ?? ""
             ]
             
         case .logout:
+            return ["driver_id": driverId]
+            
+        case .getDriverDetails:
             return ["driver_id": driverId]
             
         case .changeStatus(let status):

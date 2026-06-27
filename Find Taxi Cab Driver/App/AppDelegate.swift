@@ -58,6 +58,38 @@ private extension AppDelegate {
     }
 }
 
+extension AppDelegate {
+
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+
+        Messaging.messaging().apnsToken = deviceToken
+
+        print("✅ APNS Token Received")
+
+        Messaging.messaging().token { token, error in
+
+            if let token {
+                print("🔥 FCM Token:", token)
+                FCMTokenManager.shared.updateToken(token)
+            }
+
+            if let error {
+                print("❌ FCM Error:", error)
+            }
+        }
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        print("❌ APNS Registration Failed:", error)
+    }
+}
+
 extension AppDelegate: MessagingDelegate {
     
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {

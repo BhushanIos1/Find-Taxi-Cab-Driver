@@ -102,6 +102,36 @@ struct ProfileView: View {
         ) {
             router.pop()
         }
+        .onAppear {
+            viewModel.getDriverDetails()
+        }
+        .onChange(of: viewModel.driver) { driver in
+            
+            guard let driver else { return }
+            
+            name = driver.driverName ?? ""
+            phone = driver.contactNo ?? ""
+            address = driver.address ?? ""
+            accountNumber = driver.bankAccountNumber ?? ""
+            
+            if let photo = driver.driverPhoto,
+               let url = URL(string: "http://view.findtaxicab.com/admin/api/\(photo)") {
+                
+                Task {
+                    do {
+                        let (data, _) = try await URLSession.shared.data(from: url)
+                        
+                        if let image = UIImage(data: data) {
+                            await MainActor.run {
+                                selectedImage = image
+                            }
+                        }
+                    } catch {
+                        print(error)
+                    }
+                }
+            }
+        }
         .onChange(of: viewModel.registrationState) { state in
             
             guard let state else { return }
@@ -153,7 +183,7 @@ private extension ProfileView {
                 
                 profileImage
                 
-                Text("gnabieurocabs@hotmail.com.uk")
+                Text(viewModel.driver?.email ?? AuthManager.shared.email)
                     .font(.system(size: 20, weight: .medium))
             }
             .padding(.top, 20)
@@ -205,13 +235,7 @@ private extension ProfileView {
         
         Button {
             
-            viewModel.updateProfile(
-                driverName: name,
-                contactNo: phone,
-                address: address,
-                bankAccountNumber: accountNumber,
-                driverPhoto: selectedImage
-            )
+            viewModel.updateProfile(driverName: name, driverPhoto: selectedImage)
             
         } label: {
             Text("Update")
