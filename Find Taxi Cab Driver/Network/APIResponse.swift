@@ -19,7 +19,34 @@ struct APIResponse<T: Decodable>: Decodable {
     }
 }
 
-struct CommonResponse: Codable {
+struct CommonResponse: Decodable {
+
     let result: String?
     let message: String?
+
+    enum CodingKeys: String, CodingKey {
+        case result, message, error
+    }
+
+    /// This backend reports success under `message` but failure under `error`,
+    /// and not every endpoint sends both. Android handles it per-call — e.g.
+    /// `RouteDetailsActivity.giveFeedback()` reads `message` on success and
+    /// `getString("error")` on failure — so a client reading only `message`
+    /// loses the reason for every failed call and shows a generic fallback in
+    /// its place. That is why a rejected `/miles_cal` only ever said "Could Not
+    /// Submit Fare" instead of what the server actually objected to.
+    init(from decoder: Decoder) throws {
+
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        result = try container.decodeIfPresent(String.self, forKey: .result)
+
+        message = try container.decodeIfPresent(String.self, forKey: .message)
+            ?? container.decodeIfPresent(String.self, forKey: .error)
+    }
+
+    init(result: String?, message: String?) {
+        self.result = result
+        self.message = message
+    }
 }

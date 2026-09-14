@@ -7,12 +7,25 @@
 
 import SwiftUI
 
+/// The end-of-trip TRIP FARE dialog — Android's `showFeedbackDialog()` in
+/// `RouteDetailsActivity`.
+///
+/// The driver enters the final price plus any toll, rates the rider and leaves a
+/// comment; it all goes up in one `/miles_cal` call. Until that lands, the
+/// booking has no final price for the rider to pay, which is why CANCEL leaves
+/// the trip open rather than ending it.
 struct ReceiptView: View {
     
     @Environment(\.colorScheme) var colorScheme
     
     let pickupLocation: String
     let dropLocation: String
+    
+    /// Drives the SUBMIT label and blocks double taps while `/miles_cal` is away.
+    var isSubmitting: Bool = false
+    
+    var onSubmit: (_ price: String, _ tollCharge: String, _ comment: String, _ rating: Int) -> Void = { _, _, _, _ in }
+    var onCancel: () -> Void = { }
     
     @State private var isTollSelected = false
     @State private var rating: Int = 5
@@ -23,6 +36,12 @@ struct ReceiptView: View {
     @FocusState private var isFareFocused: Bool
     @FocusState private var isTollFocused: Bool
     @FocusState private var isCommentFocused: Bool
+    
+    /// `/miles_cal` needs a real number. Anything else — blank, "abc", a stray
+    /// currency symbol — would post a fare the rider can never be charged.
+    private var canSubmit: Bool {
+        !isSubmitting && Double(fare.trimmingCharacters(in: .whitespaces)) != nil
+    }
     
     var body: some View {
         
@@ -60,7 +79,9 @@ struct ReceiptView: View {
             
             HStack {
                 Button {
-                    isTollSelected.toggle()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isTollSelected.toggle()
+                    }
                 } label: {
                     Image(systemName: isTollSelected ? "checkmark.square.fill" : "square")
                         .resizable()
@@ -131,18 +152,19 @@ struct ReceiptView: View {
             HStack(spacing: 8) {
                 
                 Button {
-                    // submit action
+                    submit()
                 } label: {
-                    Text("SUBMIT")
+                    Text(isSubmitting ? "SUBMITTING…" : "SUBMIT")
                         .font(AppFont.font(.medium, size: 18))
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(AppColors.greenAppColor)
+                        .background(canSubmit ? AppColors.greenAppColor : AppColors.greenAppColor.opacity(0.4))
                         .foregroundColor(.white)
                 }
+                .disabled(!canSubmit)
                 
                 Button {
-                    // cancel action
+                    onCancel()
                 } label: {
                     Text("CANCEL")
                         .font(AppFont.font(.medium, size: 18))
@@ -151,6 +173,7 @@ struct ReceiptView: View {
                         .background(Color.red)
                         .foregroundColor(.white)
                 }
+                .disabled(isSubmitting)
             }
         }
         .padding(20)
@@ -167,20 +190,29 @@ struct ReceiptView: View {
 
 private extension ReceiptView {
     
-    func fareRow(title: String, value: String) -> some View {
+    func submit() {
         
-        HStack {
-            Text(title)
-            Spacer()
-            Text(value)
-            Spacer()
-        }
-        .font(AppFont.font(.semiBold, size: 16))
-        .foregroundColor(AppColors.grayDarkColor)
+        let trimmedFare = fare.trimmingCharacters(in: .whitespaces)
+        let trimmedToll = tollCharge.trimmingCharacters(in: .whitespaces)
+        
+        // An unticked box means no toll was charged, whatever is left in the
+        // field from a moment of indecision. Empty rather than "0" because that
+        // is what Android sends — `extraFare` stays "" unless its field is
+        // visible — and the backend has only ever been exercised with that.
+        let toll = (isTollSelected && !trimmedToll.isEmpty) ? trimmedToll : ""
+        
+        onSubmit(
+            trimmedFare,
+            toll,
+            comment.trimmingCharacters(in: .whitespacesAndNewlines),
+            rating
+        )
     }
 }
 
 #Preview {
-    ReceiptView(pickupLocation: "AD 361, Kali mandir, Sarat Pally Karunamoyee...",
-                dropLocation: "Sealdah Station Sealdah, Raja Bazar, Calcutta...")
+    ReceiptView(
+        pickupLocation: "AD 361, Kali mandir, Sarat Pally Karunamoyee...",
+        dropLocation: "Sealdah Station Sealdah, Raja Bazar, Calcutta..."
+    )
 }

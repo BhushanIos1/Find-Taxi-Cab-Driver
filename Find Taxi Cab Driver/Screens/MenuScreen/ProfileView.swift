@@ -17,7 +17,9 @@ struct ProfileView: View {
     private var toastManager: ToastManager
     
     @State private var selectedImage: UIImage?
+    @State private var pickerSource: UIImagePickerController.SourceType = .photoLibrary
     @State private var showImagePicker = false
+    @State private var showSourceSelection = false
     
     @State private var name = ""
     @State private var nameError: String?
@@ -115,7 +117,7 @@ struct ProfileView: View {
             accountNumber = driver.bankAccountNumber ?? ""
             
             if let photo = driver.driverPhoto,
-               let url = URL(string: "http://view.findtaxicab.com/admin/api/\(photo)") {
+               let url = URL(string: "https://view.findtaxicab.com/admin/uploads/profile/\(photo)") {
                 
                 Task {
                     do {
@@ -167,8 +169,19 @@ struct ProfileView: View {
             GlobalToastView()
                 .environmentObject(toastManager)
         )
+        .confirmationDialog("Select Profile Photo", isPresented: $showSourceSelection, titleVisibility: .visible) {
+            Button("Take Photo") {
+                pickerSource = .camera
+                showImagePicker = true
+            }
+            Button("Choose from Library") {
+                pickerSource = .photoLibrary
+                showImagePicker = true
+            }
+            Button("Cancel", role: .cancel) {}
+        }
         .sheet(isPresented: $showImagePicker) {
-            ImagePicker(image: $selectedImage)
+            ImagePicker(image: $selectedImage, sourceType: pickerSource)
         }
     }
 }
@@ -218,7 +231,7 @@ private extension ProfileView {
     var editButton: some View {
         
         Button {
-            showImagePicker = true
+            showSourceSelection = true
         } label: {
             
             Image(systemName: "pencil")

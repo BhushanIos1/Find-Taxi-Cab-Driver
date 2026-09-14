@@ -6,75 +6,45 @@
 //
 
 import SwiftUI
+import SwiftfulLoadingIndicators
 
 struct JobHistoryScreen: View {
-    
+
     @EnvironmentObject
     private var router: AppRouter
-    
-    let bookings: [JobHistoryModel] = [
-        JobHistoryModel(
-            status: "Abandoned",
-            jobNumber: "932",
-            jobDate: "07/02/2026",
-            time: "13:39:37",
-            pickup: "Hindmotor, Uttarpara, West Bengal, India",
-            drop: "Rishra, Pandit Satghara, West Bengal, India",
-            paymentMode: "Cash",
-            specialMessage: "",
-            specialNeed: "No",
-            fare: "£ 0"
-        ),
-        JobHistoryModel(
-            status: "Abandoned",
-            jobNumber: "932",
-            jobDate: "07/02/2026",
-            time: "13:39:37",
-            pickup: "Hindmotor, Uttarpara, West Bengal, India",
-            drop: "Rishra, Pandit Satghara, West Bengal, India",
-            paymentMode: "Cash",
-            specialMessage: "",
-            specialNeed: "No",
-            fare: "£ 0"
-        ),
-        JobHistoryModel(
-            status: "Abandoned",
-            jobNumber: "932",
-            jobDate: "07/02/2026",
-            time: "13:39:37",
-            pickup: "Hindmotor, Uttarpara, West Bengal, India",
-            drop: "Rishra, Pandit Satghara, West Bengal, India",
-            paymentMode: "Cash",
-            specialMessage: "",
-            specialNeed: "No",
-            fare: "£ 0"
-        ),
-        JobHistoryModel(
-            status: "Abandoned",
-            jobNumber: "932",
-            jobDate: "07/02/2026",
-            time: "13:39:37",
-            pickup: "Hindmotor, Uttarpara, West Bengal, India",
-            drop: "Rishra, Pandit Satghara, West Bengal, India",
-            paymentMode: "Cash",
-            specialMessage: "",
-            specialNeed: "No",
-            fare: "£ 0"
-        )
-    ]
-    
+
+    @StateObject
+    private var viewModel = JobHistoryViewModel()
+
     var body: some View {
-        
+
         ZStack {
-            
-            ScrollView {
-                
-                LazyVStack(spacing: 20) {
-                    ForEach(bookings) { booking in
-                        JobHistoryCell(item: booking)
+
+            if viewModel.jobs.isEmpty, !viewModel.isLoading {
+
+                emptyState
+
+            } else {
+
+                ScrollView {
+
+                    LazyVStack(spacing: 20) {
+                        ForEach(viewModel.jobs) { job in
+                            JobHistoryCell(item: job)
+                        }
                     }
+                    .padding(20)
                 }
-                .padding(20)
+            }
+
+            if viewModel.isLoading {
+
+                LoadingIndicator(
+                    animation: .circleTrim,
+                    color: AppColors.primaryYellow,
+                    size: .medium,
+                    speed: .normal
+                )
             }
         }
         .appNavigationBar(
@@ -82,6 +52,22 @@ struct JobHistoryScreen: View {
             leading: .back) {
                 router.pop()
             }
+        .onAppear {
+            viewModel.loadJobHistory()
+        }
+    }
+}
+
+private extension JobHistoryScreen {
+
+    /// Android surfaces this as a "No Job History!!!" toast; inline reads better
+    /// on a screen whose entire job is to show a list.
+    var emptyState: some View {
+
+        NoDataView(
+            icon: "clock.arrow.trianglehead.counterclockwise.rotate.90",
+            message: viewModel.errorMessage ?? "You haven't completed any jobs yet."
+        )
     }
 }
 

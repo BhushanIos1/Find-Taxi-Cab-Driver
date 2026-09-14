@@ -13,13 +13,13 @@ struct AppNavigationBar: ViewModifier {
     let leading: NavBarLeadingType
     
     var toggleBinding: Binding<Bool>? = nil
-    
+
     var onMenuTap: (() -> Void)?
-    
+
     func body(content: Content) -> some View {
-        
+
         VStack(spacing: 0) {
-            
+
             CustomNavigationBar(
                 title: title,
                 leadingType: leading,

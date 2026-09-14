@@ -51,10 +51,25 @@ enum DriverAPI: Endpoint {
     case logout
     case changeStatus(status: String)
     case getDriverDetails
-    case updateLocation(lat: String, lng: String)
+    case updateLocation(lat: String, lng: String, bookingId: String = "")
     case updateFCMToken(token: String)
     case lastBooking
     case bookingList
+    case getBookingData(bookingId: String)
+    case changeBookingStatus(bookingId: String, status: String, cancelMessage: String?)
+    /// `/miles_cal` — the driver submits the trip's final price after COMPLETED.
+    /// Until this lands the rider's `get_fair` has nothing to show and payment
+    /// can't proceed, so it's the step that closes out a trip financially.
+    case submitFinalFare(
+        bookingId: String,
+        price: String,
+        tollCharge: String,
+        feedback: String,
+        customerRate: String
+    )
+
+    case sendRideOTP(bookingId: String)
+    case verifyRideOTP(bookingId: String, otp: String)
     case updateBankDetails(parameters: Parameters)
     case paymentHistory
     case customerFeedback
@@ -81,6 +96,11 @@ extension DriverAPI {
         case .updateFCMToken: return "/update_drivertoken"
         case .lastBooking: return "/driver_last_book"
         case .bookingList: return "/driver_book_list"
+        case .getBookingData: return "/get_bookdata"
+        case .changeBookingStatus: return "/change_book_status"
+        case .submitFinalFare: return "/miles_cal"
+        case .sendRideOTP: return "/send_ride_otp"
+        case .verifyRideOTP: return "/verify_ride_otp"
         case .updateBankDetails: return "/driver_update_bank"
         case .paymentHistory: return "/payment_history_driver"
         case .customerFeedback: return "/customer_feedback_data"
@@ -110,7 +130,8 @@ extension DriverAPI {
             return [
                 "email": email,
                 "contact_no": phone,
-                "password": password
+                "password": password,
+                "device_type": "ios"
             ]
             
         case .forgotPassword(let email):
@@ -152,15 +173,26 @@ extension DriverAPI {
                 "status": status
             ]
             
-        case .updateLocation(let lat, let lng):
-            return [
+        case .updateLocation(let lat, let lng, let bookingId):
+
+            var params: Parameters = [
                 "driver_id": driverId,
                 "latitude": lat,
                 "longitude": lng,
                 "date": Date().apiDate,
-                "time": Date().apiTime,
-                "booking_id": ""
+                "time": Date().apiTime
             ]
+
+            // Android sends `booking_id` only from `RouteDetailsActivity`, i.e.
+            // while a trip is running. The idle poll in `MainActivity` omits the
+            // key entirely — sending it as "" is a different request, and an
+            // empty booking reference is not something the backend expects to
+            // file a free driver's position under.
+            if !bookingId.isEmpty {
+                params["booking_id"] = bookingId
+            }
+
+            return params
         case .updateFCMToken(let token):
             return [
                 "driver_id": driverId,
@@ -174,6 +206,48 @@ extension DriverAPI {
             
         case .bookingList:
             return ["driver_id": driverId]
+            
+        case .getBookingData(let bookingId):
+            return ["driver_id": driverId,
+                "booking_id": bookingId]
+            
+        case .changeBookingStatus(let bookingId, let status, let cancelMessage):
+            var params: Parameters = [
+                "booking_id": bookingId,
+                "driver_id": driverId,
+                "assign_status": status
+            ]
+
+            if let cancelMessage, !cancelMessage.isEmpty {
+                params["cancel_message"] = cancelMessage
+            }
+            return params
+            
+        case .submitFinalFare(
+            let bookingId,
+            let price,
+            let tollCharge,
+            let feedback,
+            let customerRate
+        ):
+            // Keys match Android's giveFeedback(): book_id (not booking_id),
+            // price, toll_charge, feedback, customer_rate.
+            return [
+                "book_id": bookingId,
+                "price": price,
+                "toll_charge": tollCharge,
+                "feedback": feedback,
+                "customer_rate": customerRate
+            ]
+
+        case .sendRideOTP(let bookingId):
+            return ["driver_id": driverId,
+                    "booking_id": bookingId]
+            
+        case .verifyRideOTP(let bookingId, let otp):
+            return ["driver_id": driverId,
+                    "booking_id": bookingId,
+                    "otp": otp]
             
         case .updateBankDetails(let parameters):
             var params = parameters

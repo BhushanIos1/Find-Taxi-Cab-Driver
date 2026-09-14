@@ -42,9 +42,7 @@ final class RegisterViewModel: ObservableObject {
             defer { isLoading = false }
             
             do {
-                
-                let fcmToken = FCMTokenManager.shared.getToken() ?? "FIREBASE_FCM_TOKEN"
-                
+
                 let response: RegisterResponse = try await APIClient.shared.request(
                     DriverAPI.register(
                         name: name,
@@ -62,11 +60,7 @@ final class RegisterViewModel: ObservableObject {
                     print("✅ Registered ID:", id)
                     
                     isSuccess = true
-                    
-                    if !fcmToken.isEmpty {
-                        updateFCMToken(driverId: "\(id)", token: fcmToken)
-                    }
-                    
+
                     registrationState = .success("Registration Successful")
                     
                 } else {
@@ -80,26 +74,6 @@ final class RegisterViewModel: ObservableObject {
                 print("❌ REGISTER FLOW ERROR:", error.localizedDescription)
                 errorMessage = error.localizedDescription
                 registrationState = .failure(error.localizedDescription)
-            }
-        }
-    }
-    
-    private func updateFCMToken(driverId: String, token: String) {
-
-        Task {
-
-            do {
-
-                let response: CommonResponse = try await APIClient.shared.request(DriverAPI.updateFCMToken(token: token),
-                    responseType: CommonResponse.self)
-
-                print("✅ FCM TOKEN UPDATED")
-                print(response)
-
-            } catch {
-
-                print("❌ FCM TOKEN UPDATE ERROR")
-                print(error.localizedDescription)
             }
         }
     }

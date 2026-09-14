@@ -25,43 +25,34 @@ struct PaymentHistoryScreen: View {
         
         ZStack {
             
-            ScrollView(showsIndicators: false) {
+            if viewModel.payments.isEmpty, !viewModel.isLoading {
                 
-                VStack {
+                VStack(spacing: 0) {
                     
-                    Text("Total Payment : £0.00")
-                        .font(AppFont.font(.medium, size: 16))
-                        .padding(.vertical, 16)
+                    summaryCard
                     
-                    Divider()
-                        .background(
-                            colorScheme == .dark ? Color.white : Color.gray
-                        )
-                    
-                    Text("Total Jobs : 00")
-                        .font(AppFont.font(.medium, size: 16))
-                        .padding(.vertical, 16)
+                    NoDataView(
+                        icon: "creditcard",
+                        message: viewModel.errorMessage ?? "No payments have been made to you yet."
+                    )
                 }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color(uiColor: .systemBackground))
-                )
-                .clipShape(
-                    RoundedRectangle(cornerRadius: 4)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(
-                            colorScheme == .dark
-                            ? Color.white
-                            : Color.black,
-                            lineWidth: 0.8
-                        )
-                )
-                .padding(20)
-            }
+                
+            } else {
+                
+                ScrollView(showsIndicators: false) {
+                    
+                    LazyVStack(spacing: 14) {
                         
+                        summaryCard
+                        
+                        ForEach(viewModel.payments) { payment in
+                            paymentRow(payment)
+                        }
+                    }
+                    .padding(.bottom, 20)
+                }
+            }
+            
             if viewModel.isLoading {
                 
                 Color.black.opacity(0.25)
@@ -114,6 +105,96 @@ struct PaymentHistoryScreen: View {
             GlobalToastView()
                 .environmentObject(toastManager)
         )
+    }
+}
+
+private extension PaymentHistoryScreen {
+    
+    /// The two headline figures from Android's layout — now actually derived from
+    /// the payments the API returns, rather than the hardcoded "£0.00" / "00"
+    /// that both apps have been showing.
+    var summaryCard: some View {
+        
+        VStack {
+            
+            Text(viewModel.totalPaidDisplay)
+                .font(AppFont.font(.medium, size: 16))
+                .padding(.vertical, 16)
+            
+            Divider()
+                .background(
+                    colorScheme == .dark ? Color.white : Color.gray
+                )
+            
+            Text(viewModel.totalJobsDisplay)
+                .font(AppFont.font(.medium, size: 16))
+                .padding(.vertical, 16)
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Color(uiColor: .systemBackground))
+        )
+        .clipShape(
+            RoundedRectangle(cornerRadius: 4)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(
+                    colorScheme == .dark
+                    ? Color.white
+                    : Color.black,
+                    lineWidth: 0.8
+                )
+        )
+        .padding(20)
+    }
+    
+    func paymentRow(_ payment: PaymentHistoryModel) -> some View {
+        
+        HStack(alignment: .top) {
+            
+            VStack(alignment: .leading, spacing: 4) {
+                
+                if let bookingId = payment.bookingId, !bookingId.isEmpty {
+                    
+                    Text("Job #\(bookingId)")
+                        .font(AppFont.font(.medium, size: 15))
+                }
+                
+                if let date = payment.paymentDate, !date.isEmpty {
+                    
+                    Text(date)
+                        .font(AppFont.font(.regular, size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                
+                if let method = payment.paymentMethod, !method.isEmpty {
+                    
+                    Text(method)
+                        .font(AppFont.font(.regular, size: 13))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            
+            Spacer(minLength: 8)
+            
+            Text(payment.amountDisplay)
+                .font(AppFont.font(.semiBold, size: 16))
+                .foregroundStyle(AppColors.greenAppColor)
+        }
+        .padding(14)
+        .background(
+            colorScheme == .dark
+            ? Color(.systemGray6)
+            : Color(.white)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(AppColors.yellowBorder, lineWidth: 0.8)
+        )
+        .padding(.horizontal, 20)
     }
 }
 

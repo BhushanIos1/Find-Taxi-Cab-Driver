@@ -7,53 +7,42 @@
 
 import Foundation
 import CoreLocation
+import GoogleMaps
+
+struct RouteInfo {
+    let path: GMSPath      // decoded polyline
+    let distanceText: String
+    let durationText: String
+}
 
 final class DirectionsService {
-
-    static let shared = DirectionsService()
-
-    private init() {}
-
-    // Replace with your Google Maps API Key
-
-    func fetchRoute(
-        from source: CLLocationCoordinate2D,
-        to destination: CLLocationCoordinate2D
-    ) async throws -> String {
-
-        let urlString =
-        "https://maps.googleapis.com/maps/api/directions/json?" +
-        "origin=\(source.latitude),\(source.longitude)" +
-        "&destination=\(destination.latitude),\(destination.longitude)" +
-        "&mode=driving" +
-        "&key=\(MapAPIKey.apiKey)"
-
-        guard let url = URL(string: urlString) else {
-            throw URLError(.badURL)
-        }
-
-        let (data, response) = try await URLSession.shared.data(from: url)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
+    static let apiKey = MapAPIKey.directionApiKey
+    
+    static func fetchRoute(
+        origin: CLLocationCoordinate2D,
+        destination: CLLocationCoordinate2D
+    ) async throws -> RouteInfo {
+        var components = URLComponents(string: "https://maps.googleapis.com/maps/api/directions/json")!
+        components.queryItems = [
+            .init(name: "origin", value: "\(origin.latitude),\(origin.longitude)"),
+            .init(name: "destination", value: "\(destination.latitude),\(destination.longitude)"),
+            .init(name: "mode", value: "driving"),
+            .init(name: "key", value: apiKey)
+        ]
+        
+        let (data, _) = try await URLSession.shared.data(from: components.url!)
+        
+        // 👇 TEMP DEBUG — print raw JSON
+        print("Directions raw response:", String(data: data, encoding: .utf8) ?? "no data")
+        
+        let decoded = try JSONDecoder().decode(DirectionsResponse.self, from: data)
+        
+        guard let route = decoded.routes.first,
+              let leg = route.legs.first,
+              let path = GMSPath(fromEncodedPath: route.overview_polyline.points) else {
             throw URLError(.badServerResponse)
         }
-
-        let directions = try JSONDecoder().decode(
-            DirectionsResponse.self,
-            from: data
-        )
-
-        guard let polyline = directions.routes.first?.overviewPolyline.points else {
-            throw NSError(
-                domain: "DirectionsService",
-                code: -1,
-                userInfo: [
-                    NSLocalizedDescriptionKey: "No route found."
-                ]
-            )
-        }
-
-        return polyline
+        
+        return RouteInfo(path: path, distanceText: leg.distance.text, durationText: leg.duration.text)
     }
 }

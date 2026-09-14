@@ -5,14 +5,17 @@
 //  Created by Bhushan Kumar on 06/07/26.
 //
 
-import SwiftUI
-
-struct DirectionsResponse: View {
-    var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+struct DirectionsResponse: Decodable {
+    
+    let routes: [Route]
+    struct Route: Decodable {
+        let overview_polyline: Polyline
+        let legs: [Leg]
     }
-}
-
-#Preview {
-    DirectionsResponse()
+    struct Polyline: Decodable { let points: String }
+    struct Leg: Decodable {
+        let distance: TextValue
+        let duration: TextValue
+    }
+    struct TextValue: Decodable { let text: String }
 }

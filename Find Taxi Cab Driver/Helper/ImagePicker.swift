@@ -11,11 +11,20 @@ struct ImagePicker: UIViewControllerRepresentable {
     
     @Binding var image: UIImage?
     
+    var sourceType: UIImagePickerController.SourceType = .photoLibrary
+    
+    @Environment(\.dismiss) private var dismiss
+    
     func makeUIViewController(context: Context) -> UIImagePickerController {
         
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
-        picker.sourceType = .photoLibrary
+        
+        if UIImagePickerController.isSourceTypeAvailable(sourceType) {
+            picker.sourceType = sourceType
+        } else {
+            picker.sourceType = .photoLibrary
+        }
         
         return picker
     }
@@ -48,7 +57,11 @@ extension ImagePicker {
                 parent.image = image
             }
             
-            picker.dismiss(animated: true)
+            parent.dismiss()
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
         }
     }
 }

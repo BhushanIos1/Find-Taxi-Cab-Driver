@@ -7,18 +7,39 @@
 
 import SwiftUI
 import Combine
+import SwiftfulLoadingIndicators
 
 struct RideRequestPopup: View {
     
     @Environment(\.colorScheme) var colorScheme
+
+    @Environment(\.scenePhase) private var scenePhase
+
+    @EnvironmentObject
+    private var toastManager: ToastManager
     
     @Binding var isPresented: Bool
-    
+
+    let bookingId: String
     let pickupLocation: String
     let dropLocation: String
     let specialNeeds: String
-    
+
+    /// Called after the server confirms the ACCEPT — lets the presenting screen
+    /// (e.g. `HomeScreen`) pick up the now-active booking and draw the route.
+    var onAccepted: (() -> Void)? = nil
+
     @StateObject private var timerManager = RideTimerManager()
+
+    @StateObject
+    private var bookingViewModel = BookingViewModel()
+
+    /// Tracks which action is in flight so the shared `bookingState` success/failure
+    /// handler below knows whether to fire `onAccepted`.
+    @State private var pendingAction: BookingAction?
+
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
     
     var body: some View {
         
@@ -84,6 +105,7 @@ struct RideRequestPopup: View {
                             .foregroundColor(.white)
                             .cornerRadius(6)
                     }
+                    .disabled(bookingViewModel.isLoading)
                 }
             }
             .padding()
@@ -92,6 +114,21 @@ struct RideRequestPopup: View {
                         : Color(.white))
             .cornerRadius(6)
             .padding(.horizontal, 20)
+            
+            // MARK: - Loading Overlay
+            if bookingViewModel.isLoading {
+                
+                Color.black.opacity(0.25)
+                    .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                
+                LoadingIndicator(
+                    animation: .circleTrim,
+                    color: AppColors.primaryYellow,
+                    size: .medium,
+                    speed: .normal
+                )
+            }
         }
         .onAppear {
             timerManager.start(duration: 15)
@@ -99,11 +136,55 @@ struct RideRequestPopup: View {
         .onDisappear {
             timerManager.stop()
         }
+        .onChange(of: scenePhase) { phase in
+
+            // An offer that arrives while the app is backgrounded would otherwise
+            // burn its whole 15s countdown unseen and auto-reject before the driver
+            // ever opens the app — looking exactly like "the popup never appeared".
+            // Restart the clock whenever the app actually comes to the foreground,
+            // so the driver always gets a full 15 visible seconds to decide.
+            guard phase == .active, pendingAction == nil else { return }
+
+            timerManager.start(duration: 15)
+        }
         .onReceive(timerManager.$remainingTime) { value in
-            if value == 0 {
-                dismiss()
+            if value == 0 && !bookingViewModel.isLoading {
+                // Auto-reject on timeout — was previously a silent local dismiss
+                // that never told the server, leaving the booking stuck pending.
+                rejectAction()
             }
         }
+        .onChange(of: bookingViewModel.bookingState) { state in
+
+            guard let state else { return }
+
+            switch state {
+
+            case .success(let message):
+
+                print("✅ BOOKING STATUS SUCCESS:", message)
+
+                if pendingAction == .accept {
+                    onAccepted?()
+                }
+
+                dismiss()
+
+            case .failure(let message):
+                print("❌ BOOKING STATUS FAILED:", message)
+                toastManager.showToast(
+                    type: .error,
+                    title: "Failed",
+                    subtitle: message
+                )
+            }
+            
+            bookingViewModel.bookingState = nil
+        }
+        .overlay(
+            GlobalToastView()
+                .environmentObject(toastManager)
+        )
     }
 }
 
@@ -111,15 +192,33 @@ struct RideRequestPopup: View {
 private extension RideRequestPopup {
     
     func acceptAction() {
+
+        guard !bookingViewModel.isLoading else {
+            return
+        }
+
         timerManager.stop()
-        dismiss()
-        // API Call → Accept Ride
+        pendingAction = .accept
+
+        bookingViewModel.changeBookingStatus(
+            bookingId: bookingId,
+            action: .accept
+        )
     }
-    
+
     func rejectAction() {
+
+        guard !bookingViewModel.isLoading else {
+            return
+        }
+
         timerManager.stop()
-        dismiss()
-        // API Call → Reject Ride
+        pendingAction = .reject
+
+        bookingViewModel.changeBookingStatus(
+            bookingId: bookingId,
+            action: .reject
+        )
     }
     
     func dismiss() {
@@ -129,6 +228,7 @@ private extension RideRequestPopup {
 
 #Preview {
     RideRequestPopup(isPresented: .constant(false),
+                     bookingId: "12345",
                      pickupLocation: "AD 361, Kali mandir, Sarat Pally Karunamoyee...",
                      dropLocation: "Sealdah Station Sealdah, Raja Bazar, Calcutta...",
                      specialNeeds: "Wheelchair")

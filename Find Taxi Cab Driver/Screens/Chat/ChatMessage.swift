@@ -5,4 +5,12 @@
 //  Created by Bhushan Kumar on 04/07/26.
 //
 
-import Foundation
+import SwiftUI
+
+struct ChatMessage: Identifiable {
+    let id = UUID()
+    let text: String
+    let time: String
+    let isSender: Bool
+    let isRead: Bool
+}

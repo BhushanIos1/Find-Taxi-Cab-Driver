@@ -9,6 +9,8 @@ import CoreLocation
 
 struct GoogleMapView: UIViewRepresentable {
     
+    var onMapReady: ((GMSMapView) -> Void)? = nil
+    
     func makeCoordinator() -> Coordinator {
         Coordinator()
     }
@@ -25,6 +27,8 @@ struct GoogleMapView: UIViewRepresentable {
         
         context.coordinator.mapView = mapView
         context.coordinator.requestLocation()
+        
+        onMapReady?(mapView)
         
         return mapView
     }

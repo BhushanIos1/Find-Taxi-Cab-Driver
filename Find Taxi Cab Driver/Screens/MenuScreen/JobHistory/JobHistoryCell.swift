@@ -48,7 +48,7 @@ private extension JobHistoryCell {
     
     var statusHeader: some View {
         
-        Text(item.status)
+        Text(item.statusDisplay)
             .font(AppFont.font(.medium, size: 16))
             .foregroundColor(statusColor)
             .frame(maxWidth: .infinity)
@@ -60,12 +60,10 @@ private extension JobHistoryCell {
     
     var statusColor: Color {
         
-        switch item.status.lowercased() {
-        case "completed":
+        switch item.assignStatus?.lowercased() {
+        case "complete":
             return .green
-        case "abandoned":
-            return AppColors.primaryYellow
-        case "cancelled":
+        case "cancel":
             return .red
         default:
             return AppColors.primaryYellow
@@ -79,15 +77,15 @@ private extension JobHistoryCell {
         
         VStack(spacing: 0) {
             
-            detailRow("Job Number", item.jobNumber)
-            detailRow("Job Date", item.jobDate)
-            detailRow("Time", item.time)
-            detailRow("Pickup Location", item.pickup)
-            detailRow("Drop Location", item.drop)
-            detailRow("Payment Mode", item.paymentMode)
-            detailRow("Special Message", item.specialMessage)
-            detailRow("Special Need", item.specialNeed)
-            detailRow("Fare", item.fare, showDivider: false)
+            detailRow("Job Number", item.bookingId ?? "—")
+            detailRow("Job Date", item.date ?? "—")
+            detailRow("Time", item.time ?? "—")
+            detailRow("Pickup Location", item.pickup ?? "—")
+            detailRow("Drop Location", item.drop ?? "—")
+            detailRow("Payment Mode", item.paymentMethod?.capitalized ?? "—")
+            detailRow("Special Message", item.specialMessage ?? "")
+            detailRow("Special Need", item.specialNeed ?? "—")
+            detailRow("Fare", item.fareDisplay, showDivider: false)
         }
     }
 }
@@ -127,15 +125,15 @@ private extension JobHistoryCell {
 
 #Preview {
     JobHistoryCell(item: JobHistoryModel(
-        status: "Abandoned",
-        jobNumber: "932",
-        jobDate: "07/02/2026",
+        bookingId: "932",
+        assignStatus: "abandon",
+        date: "07/02/2026",
         time: "13:39:37",
         pickup: "Hindmotor, Uttarpara, West Bengal, India",
         drop: "Rishra, Pandit Satghara, West Bengal, India",
-        paymentMode: "Cash",
+        paymentMethod: "Cash",
+        baseFare: "0",
         specialMessage: "",
-        specialNeed: "No",
-        fare: "£ 0"
+        specialNeed: "No"
     ))
 }

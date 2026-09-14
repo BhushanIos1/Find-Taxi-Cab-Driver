@@ -8,18 +8,19 @@
 import SwiftUI
 
 struct SideMenuView: View {
-    
+
     @Binding var presentSideMenu: Bool
+
     var onMenuSelected: (SideMenuRowType) -> Void
-    
+
     @State private var selectedRow: SideMenuRowType = .jobHistory
-    
+
     var body: some View {
-        
+
         VStack(spacing: 0) {
-            
+
             profileImageView
-            
+
             // ✅ SCROLLABLE MENU
             ScrollView(showsIndicators: false) {
                 
@@ -83,7 +84,7 @@ private extension SideMenuView {
 }
 
 private extension SideMenuView {
-    
+
     func rowView(
         isSelected: Bool,
         imageName: String,

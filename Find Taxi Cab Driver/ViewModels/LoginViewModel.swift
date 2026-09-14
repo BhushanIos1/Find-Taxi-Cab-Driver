@@ -61,11 +61,10 @@ final class LoginViewModel: ObservableObject {
                     
                     print("✅ LOGIN SUCCESS:", driver.id)
                     AppState.shared.login(driverId: driver.id, token: driver.token, status: driver.workStatus, driverName: driver.driverName, driverTitle: driver.title, email: driver.email)
-                    
-                    if !fcmToken.isEmpty {
-                        updateFCMToken(driverId: driver.id, token: fcmToken)
-                    }
-                    
+
+                    // Session now exists — push the FCM token we already hold.
+                    FCMTokenManager.shared.registerWithServerIfLoggedIn()
+
                     loginState = .success("Login Successful")
                     
                 } else {
@@ -78,26 +77,6 @@ final class LoginViewModel: ObservableObject {
             } catch {
                 print("❌ LOGIN ERROR:", error.localizedDescription)
                 loginState = .failure(error.localizedDescription)
-            }
-        }
-    }
-    
-    private func updateFCMToken(driverId: String, token: String) {
-
-        Task {
-
-            do {
-
-                let response: CommonResponse = try await APIClient.shared.request(DriverAPI.updateFCMToken(token: token),
-                    responseType: CommonResponse.self)
-
-                print("✅ FCM TOKEN UPDATED")
-                print(response)
-
-            } catch {
-
-                print("❌ FCM TOKEN UPDATE ERROR")
-                print(error.localizedDescription)
             }
         }
     }
