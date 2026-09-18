@@ -24,4 +24,5 @@ enum AppRoute: Hashable {
     case changePassword
     case emergency
     case booking
+    case chat(bookingId: String)
 }

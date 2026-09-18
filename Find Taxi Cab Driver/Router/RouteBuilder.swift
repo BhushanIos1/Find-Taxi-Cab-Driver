@@ -20,6 +20,9 @@ struct RouteBuilder {
         case .jobHistory:
             JobHistoryScreen()
             
+        case .chat(let bookingId):
+            ChatView(bookingId: bookingId)
+
         case .paymentHistory:
             PaymentHistoryScreen()
             

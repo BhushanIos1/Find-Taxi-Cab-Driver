@@ -10,6 +10,12 @@ import Foundation
 struct NotificationPayload {
 
     let status: NotificationStatus
+
+    /// Exactly what the server sent, kept for the log line when `status` comes
+    /// out `.unknown` — otherwise an unrecognised push is indistinguishable
+    /// from no push at all.
+    let rawStatus: String?
+
     let bookingId: String?
     let title: String?
     let message: String?
@@ -17,6 +23,7 @@ struct NotificationPayload {
     init(userInfo: [AnyHashable: Any]) {
 
         let statusString = Self.stringValue(in: userInfo, keys: "status", "tag")
+        self.rawStatus = statusString
         self.status = NotificationStatus(value: statusString)
 
         self.bookingId = Self.stringValue(in: userInfo, keys: "booking_id", "book_id")

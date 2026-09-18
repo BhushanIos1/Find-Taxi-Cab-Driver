@@ -177,6 +177,26 @@ struct HomeScreen: View {
 
 private extension HomeScreen {
 
+    /// Consumes `chatToOpen` if it's set — from either the live tap arriving
+    /// while this screen is already up, or one that landed before this screen
+    /// had mounted at all (a cold launch straight from a tapped notification,
+    /// where `@Published` has nothing to replay to a subscriber that joins
+    /// late). Idempotent: safe to call from both `.onAppear` and `.onReceive`.
+    func openPendingChatIfNeeded() {
+
+        guard let bookingId = NotificationManager.shared.chatToOpen,
+              !bookingId.isEmpty else {
+            return
+        }
+
+        NotificationManager.shared.chatToOpen = nil
+
+        router.push(.chat(bookingId: bookingId))
+    }
+}
+
+private extension HomeScreen {
+
     @ViewBuilder
     func applyLifecycleHandlers(to content: some View) -> some View {
         content
@@ -187,6 +207,8 @@ private extension HomeScreen {
 
                 // Killed mid-trip? Pick it back up.
                 bookingViewModel.restoreActiveBooking()
+
+                openPendingChatIfNeeded()
             }
             .onChange(of: scenePhase) { phase in
 
@@ -225,6 +247,12 @@ private extension HomeScreen {
                 handleIncomingNotification(payload)
 
                 NotificationManager.shared.pendingNotification = nil
+            }
+            // Chat opened from a tapped notification. Handled here because Home
+            // is the one screen alive for as long as the driver is logged in,
+            // whatever they have navigated into since.
+            .onReceive(NotificationManager.shared.$chatToOpen) { _ in
+                openPendingChatIfNeeded()
             }
             .onChange(of: bookingViewModel.incomingOffer) { details in
 
@@ -473,22 +501,23 @@ private extension HomeScreen {
                 primaryActionRow
 
                 // Once the customer is on board, the only thing left to do is
-                // finish the trip. SEND SMS exists to get the trip code to the
-                // customer and MAKE CALL to find them at the kerb — both are
+                // finish the trip. CHAT exists to reach the customer before
+                // pickup and MAKE CALL to find them at the kerb — both are
                 // spent by this point, so the row goes away rather than sitting
                 // there as something to tap by mistake mid-journey.
                 if tripStage != .markCompleted {
 
                     HStack(spacing: 8) {
 
-                        // Opens Messages to the customer's number. The trip code
-                        // is not sent from here — `send_ride_otp` fires on ON
-                        // BOARD, where the driver is actually at the kerb.
+                        // In-app chat against this booking, replacing the SMS
+                        // composer: it needs no phone number, keeps the thread
+                        // attached to the trip, and the customer sees it inside
+                        // their own app.
                         ActionButtonView(
-                            title: "SEND SMS",
+                            title: "CHAT",
                             backgroundColor: AppColors.primaryYellow
                         ) {
-                            messageCustomer()
+                            openChat()
                         }
 
                         ActionButtonView(
@@ -792,34 +821,22 @@ private extension HomeScreen {
     /// Same contract as `callCustomer()`, one scheme along. Android has no
     /// equivalent — its SMS button posts the ride OTP — but a driver who can't
     /// reach someone by phone should be able to text them.
-    func messageCustomer() {
+    /// Opens the booking's chat thread. Requires only the booking id, so it
+    /// works even when `cus_mob` came back empty.
+    func openChat() {
 
-        guard !activeCustomerPhone.isEmpty else {
+        guard !activeBookingId.isEmpty else {
 
             toastManager.showToast(
                 type: .error,
-                title: "No Number",
-                subtitle: "This booking has no customer contact number."
+                title: "No Booking",
+                subtitle: "There's no active booking to chat about."
             )
 
             return
         }
 
-        let dialable = activeCustomerPhone.filter { $0.isNumber || $0 == "+" }
-
-        guard let url = URL(string: "sms:\(dialable)"),
-              UIApplication.shared.canOpenURL(url) else {
-
-            toastManager.showToast(
-                type: .error,
-                title: "Can't Send",
-                subtitle: "Messaging isn't available on this device."
-            )
-
-            return
-        }
-
-        UIApplication.shared.open(url)
+        router.push(.chat(bookingId: activeBookingId))
     }
 
     func callCustomer() {

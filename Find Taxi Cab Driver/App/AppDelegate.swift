@@ -138,7 +138,7 @@ extension AppDelegate {
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         print("🔔👆 didReceive response (user tapped) — raw payload:", response.notification.request.content.userInfo)
-        NotificationManager.shared.handle(userInfo: response.notification.request.content.userInfo)
+        NotificationManager.shared.handle(userInfo: response.notification.request.content.userInfo, wasTapped: true)
         completionHandler()
     }
 }

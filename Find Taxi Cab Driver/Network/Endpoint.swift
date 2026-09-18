@@ -10,12 +10,26 @@ import Alamofire
 protocol Endpoint {
     var path: String { get }
     var parameters: Parameters? { get }
+
+    /// A protocol requirement, not just an extension default — otherwise a
+    /// per-case override is never reached. `APIClient` holds endpoints as
+    /// `Endpoint`, and a member that only exists in the extension is dispatched
+    /// statically to that extension, quietly ignoring the enum's own version.
+    var baseURL: String { get }
 }
 
 extension Endpoint {
     
+    /// Everything the backend serves lives under here.
+    static var serverRoot: String {
+        "http://view.findtaxicab.com/admin"
+    }
+    
+    /// Most endpoints sit in `admin/api/`. The chat endpoints do not — they are
+    /// served straight from `admin/`, and requesting them under `api/` returns a
+    /// 404 HTML page rather than JSON.
     var baseURL: String {
-        return "http://view.findtaxicab.com/admin/api"
+        Self.serverRoot + "/api"
     }
     
     var method: HTTPMethod {
@@ -28,6 +42,19 @@ extension Endpoint {
 }
 
 enum DriverAPI: Endpoint {
+    
+    /// Chat is the one group served from `admin/` rather than `admin/api/`.
+    var baseURL: String {
+        
+        switch self {
+            
+        case .sendChatMessage, .chatMessages, .markChatRead:
+            return Self.serverRoot
+            
+        default:
+            return Self.serverRoot + "/api"
+        }
+    }
     
     case login(email: String,
                password: String,
@@ -77,6 +104,17 @@ enum DriverAPI: Endpoint {
     case getDriverLatLng
     case getDriverStatus
     case getNearClients(lat: String, lng: String)
+    // MARK: - Chat
+    //
+    // These sit under `/chat/...` rather than alongside the `api/<name>` calls.
+    // `baseURL` already ends in `/admin/api`, so the collection's
+    // `{{base_url}}/chat/send_message` resolves correctly as long as `base_url`
+    // is that same root.
+
+    case sendChatMessage(bookingId: String, message: String)
+    case chatMessages(bookingId: String, afterId: String)
+    case markChatRead(bookingId: String)
+
     case driverFeedback(bookingId: String, feedback: String, rate: String)
 }
 
@@ -108,6 +146,9 @@ extension DriverAPI {
         case .getDriverLatLng: return "/get_driverlatlng"
         case .getDriverStatus: return "/get_driver_status"
         case .getNearClients: return "/get_nearclient"
+        case .sendChatMessage: return "/chat/send_message"
+        case .chatMessages: return "/chat/get_messages"
+        case .markChatRead: return "/chat/mark_read"
         case .driverFeedback: return "/driver_feedback"
         }
     }
@@ -254,6 +295,28 @@ extension DriverAPI {
             params["driver_id"] = driverId
             return params
             
+        case .sendChatMessage(let bookingId, let message):
+            return [
+                "booking_id": bookingId,
+                "sender_type": "driver",
+                "sender_id": driverId,
+                "message": message
+            ]
+
+        case .chatMessages(let bookingId, let afterId):
+            return [
+                "booking_id": bookingId,
+                "after_id": afterId
+            ]
+
+        case .markChatRead(let bookingId):
+            // `reader_type` is who is *doing* the reading — this marks the
+            // customer's messages as seen.
+            return [
+                "booking_id": bookingId,
+                "reader_type": "driver"
+            ]
+
         case .paymentHistory:
             return [
                 "driver_id": driverId
