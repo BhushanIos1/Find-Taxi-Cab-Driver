@@ -89,28 +89,121 @@ extension APIClient {
             }
             
             if let decoded = try? JSONDecoder().decode(APIResponse<T>.self, from: data) {
-                
+
                 if decoded.isSuccess {
-                    
+
                     if let data = decoded.data {
                         print("ℹ️ Decoded via APIResponse envelope")
                         return data
                     }
-                    
+
                     if T.self == EmptyResponse.self {
                         return EmptyResponse() as! T
                     }
                 }
             }
-            
-            // Neither shape fits — let the real error surface.
+
+            // Confirmed on `change_book_status`: the server sometimes appends
+            // a raw PHP warning straight onto the end of an otherwise-valid
+            // body with no separator —
+            // `{"result":"success","message":"Booking Cancelled"}Error: ...`.
+            // The response the server actually meant to send is sitting right
+            // there at the start; only the junk tacked on after it breaks
+            // `JSONDecoder`. Before giving up, retry against just the
+            // well-formed leading JSON object/array, so a genuine success on
+            // the server isn't reported to the UI as a decoding failure.
+            if let repaired = Self.leadingJSONObject(in: data) {
+
+                if let direct = try? JSONDecoder().decode(T.self, from: repaired) {
+                    print("⚠️ Decoded after trimming trailing non-JSON content the server appended to the response")
+                    return direct
+                }
+
+                if let decoded = try? JSONDecoder().decode(APIResponse<T>.self, from: repaired),
+                   decoded.isSuccess {
+
+                    if let data = decoded.data {
+                        print("⚠️ Decoded via APIResponse envelope after trimming trailing non-JSON content")
+                        return data
+                    }
+
+                    if T.self == EmptyResponse.self {
+                        return EmptyResponse() as! T
+                    }
+                }
+            }
+
+            // Neither shape fits, even after repair — let the real error surface.
             let direct = try JSONDecoder().decode(T.self, from: data)
             return direct
-            
+
         } catch {
             print("❌ DECODING ERROR:", error)
             throw NetworkError.decodingError
         }
+    }
+
+    /// Finds the first complete top-level JSON object or array in `data` and
+    /// returns just those bytes, discarding anything appended after it.
+    /// Returns `nil` when there's nothing to trim (already-valid JSON, or no
+    /// JSON found at all) — callers should treat that as "no repair possible",
+    /// not "the response is now empty".
+    private static func leadingJSONObject(in data: Data) -> Data? {
+
+        guard let text = String(data: data, encoding: .utf8),
+              let openIndex = text.firstIndex(where: { $0 == "{" || $0 == "[" }) else {
+            return nil
+        }
+
+        let opening = text[openIndex]
+        let closing: Character = opening == "{" ? "}" : "]"
+
+        var depth = 0
+        var insideString = false
+        var isEscaped = false
+        var closeIndex: String.Index?
+
+        for index in text[openIndex...].indices {
+
+            let character = text[index]
+
+            if isEscaped {
+                isEscaped = false
+                continue
+            }
+
+            if character == "\\" {
+                isEscaped = true
+                continue
+            }
+
+            if character == "\"" {
+                insideString.toggle()
+                continue
+            }
+
+            guard !insideString else { continue }
+
+            if character == opening {
+                depth += 1
+            } else if character == closing {
+                depth -= 1
+                if depth == 0 {
+                    closeIndex = index
+                    break
+                }
+            }
+        }
+
+        guard let closeIndex else { return nil }
+
+        let jsonSlice = text[openIndex...closeIndex]
+
+        // Nothing was actually appended after it — same bytes either way, so
+        // retrying the decode against this would just fail the same way again.
+        guard jsonSlice.utf8.count != text.utf8.count else { return nil }
+
+        return Data(jsonSlice.utf8)
     }
 }
 

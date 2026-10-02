@@ -25,6 +25,10 @@ struct RideRequestPopup: View {
     let dropLocation: String
     let specialNeeds: String
 
+    /// `admin_booking` offers skip the normal payment flow the fare quote
+    /// assumes — the warning below is the only place that tells the driver so.
+    var isAdminBooking: Bool = false
+
     /// Called after the server confirms the ACCEPT — lets the presenting screen
     /// (e.g. `HomeScreen`) pick up the now-active booking and draw the route.
     var onAccepted: (() -> Void)? = nil
@@ -76,9 +80,16 @@ struct RideRequestPopup: View {
                     title: "Special Needs:",
                     value: specialNeeds
                 )
-                
+
                 Divider()
-                
+
+                if isAdminBooking {
+
+                    Text("Note: This booking was created by admin. Kindly collect the cash fare directly from the customer.")
+                        .font(AppFont.font(.medium, size: 14))
+                        .foregroundColor(.red)
+                }
+
                 // Buttons
                 HStack(spacing: 12) {
                     

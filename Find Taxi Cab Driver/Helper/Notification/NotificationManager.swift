@@ -117,10 +117,13 @@ extension NotificationManager {
         
         switch payload.status {
             
-        case .booking,
-             .adminBooking:
-            
+        case .booking:
+
             return .newBooking
+
+        case .adminBooking:
+
+            return .newAdminBooking
             
         case .bookingCancel:
             

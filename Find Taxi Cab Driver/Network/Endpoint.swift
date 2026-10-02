@@ -83,6 +83,12 @@ enum DriverAPI: Endpoint {
     case lastBooking
     case bookingList
     case getBookingData(bookingId: String)
+
+    /// `/booking` — the counterpart of `getBookingData` for an admin-assigned
+    /// offer specifically. Unlike `get_bookdata`, this call takes no
+    /// parameters at all; the server resolves the pending admin booking for
+    /// the authenticated driver on its own.
+    case fetchAdminBooking
     case changeBookingStatus(bookingId: String, status: String, cancelMessage: String?)
     /// `/miles_cal` — the driver submits the trip's final price after COMPLETED.
     /// Until this lands the rider's `get_fair` has nothing to show and payment
@@ -135,6 +141,7 @@ extension DriverAPI {
         case .lastBooking: return "/driver_last_book"
         case .bookingList: return "/driver_book_list"
         case .getBookingData: return "/get_bookdata"
+        case .fetchAdminBooking: return "/booking"
         case .changeBookingStatus: return "/change_book_status"
         case .submitFinalFare: return "/miles_cal"
         case .sendRideOTP: return "/send_ride_otp"
@@ -251,6 +258,9 @@ extension DriverAPI {
         case .getBookingData(let bookingId):
             return ["driver_id": driverId,
                 "booking_id": bookingId]
+
+        case .fetchAdminBooking:
+            return nil
             
         case .changeBookingStatus(let bookingId, let status, let cancelMessage):
             var params: Parameters = [

@@ -138,18 +138,18 @@ final class BookingViewModel: ObservableObject {
     }
 
     func getBookingData(bookingId: String) {
-        
+
         guard !isLoading else { return }
-        
+
         isLoading = true
         errorMessage = nil
-        
+
         Task {
-            
+
             defer { isLoading = false }
-            
+
             do {
-                
+
                 let response: BookingDetailsResponse =
                 try await APIClient.shared.request(
                     DriverAPI.getBookingData(
@@ -157,28 +157,98 @@ final class BookingViewModel: ObservableObject {
                     ),
                     responseType: BookingDetailsResponse.self
                 )
-                
+
                 if response.result.lowercased() == "success" {
-                    
+
                     incomingOffer = response.bookingData
-                    
+
                     bookingState = .success("")
-                    
+
                 } else {
-                    
+
                     let message = response.error ?? "No Booking Found"
-                    
+
                     errorMessage = message
                     bookingState = .failure(message)
                 }
-                
+
             } catch {
-                
+
                 errorMessage = error.localizedDescription
                 bookingState = .failure(error.localizedDescription)
-                
+
                 print("❌ GET BOOKING DATA ERROR")
                 print(error)
+            }
+        }
+    }
+
+    /// `/booking` — the counterpart of `getBookingData` for a booking admin
+    /// assigned directly rather than through the normal driver-matching flow.
+    /// Takes no parameters; the server resolves the pending admin booking for
+    /// the authenticated driver on its own, so there's no `bookingId` to pass
+    /// even though the triggering push carries one.
+    func getAdminBookingData() {
+
+        guard !isLoading else { return }
+
+        isLoading = true
+        errorMessage = nil
+
+        Task {
+
+            defer { isLoading = false }
+
+            // An admin booking's push fires the instant admin taps assign,
+            // which can land on this device a beat before the booking is
+            // actually resolvable server-side — a couple of short retries
+            // absorb that race rather than losing the offer to a toast the
+            // driver has no way to act on.
+            let maxAttempts = 3
+
+            for attempt in 1...maxAttempts {
+
+                do {
+
+                    let response: BookingDetailsResponse =
+                    try await APIClient.shared.request(
+                        DriverAPI.fetchAdminBooking,
+                        responseType: BookingDetailsResponse.self
+                    )
+
+                    if response.result.lowercased() == "success" {
+
+                        incomingOffer = response.bookingData
+
+                        bookingState = .success("")
+                        return
+                    }
+
+                    let message = response.error ?? "No Booking Found"
+
+                    if attempt < maxAttempts {
+                        print("⚠️ GET ADMIN BOOKING: attempt \(attempt)/\(maxAttempts) failed (\(message)) — retrying…")
+                        try? await Task.sleep(for: .seconds(1.5))
+                        continue
+                    }
+
+                    errorMessage = message
+                    bookingState = .failure(message)
+
+                } catch {
+
+                    if attempt < maxAttempts {
+                        print("⚠️ GET ADMIN BOOKING: attempt \(attempt)/\(maxAttempts) network error (\(error)) — retrying…")
+                        try? await Task.sleep(for: .seconds(1.5))
+                        continue
+                    }
+
+                    errorMessage = error.localizedDescription
+                    bookingState = .failure(error.localizedDescription)
+
+                    print("❌ GET ADMIN BOOKING ERROR")
+                    print(error)
+                }
             }
         }
     }

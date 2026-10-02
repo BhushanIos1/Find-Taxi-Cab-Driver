@@ -51,6 +51,7 @@ extension View {
         pickup: String,
         drop: String,
         needs: String,
+        isAdminBooking: Bool = false,
         onAccepted: (() -> Void)? = nil
     ) -> some View {
 
@@ -62,6 +63,7 @@ extension View {
                     pickupLocation: pickup,
                     dropLocation: drop,
                     specialNeeds: needs,
+                    isAdminBooking: isAdminBooking,
                     onAccepted: onAccepted
                 )
                 .transition(.opacity.combined(with: .scale))
@@ -75,9 +77,11 @@ extension View {
         title: String,
         placeholder: String,
         buttonTitle: String,
+        isSubmitting: Bool = false,
+        errorMessage: String? = nil,
         onSubmit: @escaping (String) -> Void
     ) -> some View {
-        
+
         self.overlay {
             if isPresented.wrappedValue {
                 CancelPopupView(
@@ -85,7 +89,9 @@ extension View {
                     title: title,
                     placeholder: placeholder,
                     buttonTitle: buttonTitle,
-                    onSubmit: onSubmit
+                    onSubmit: onSubmit,
+                    isSubmitting: isSubmitting,
+                    errorMessage: errorMessage
                 )
                 .zIndex(9999)
             }

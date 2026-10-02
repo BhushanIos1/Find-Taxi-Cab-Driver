@@ -77,6 +77,24 @@ struct HomeScreen: View {
 
     @State private var showRidePopup = false
 
+    /// Whether the offer currently in `showRidePopup` came from `admin_booking`
+    /// rather than the normal driver-matching push — set right before each
+    /// fetch, so it's already correct by the time `incomingOffer` lands and
+    /// opens the popup.
+    @State private var isAdminBookingOffer = false
+
+    /// Whether the *active* trip (post-accept) came from `admin_booking` —
+    /// hides CHAT, since an admin-assigned booking never had a customer
+    /// thread opened against it the way a driver-matched one does.
+    @State private var activeBookingIsAdmin = false
+
+    /// `BookingData` (from `/get_bookdata`, `/booking` or `driver_last_book`)
+    /// carries nothing that says "this came from admin" — that's only known
+    /// at the moment the push itself arrives. Persisting the accepted admin
+    /// booking's id is what lets `restoreTrip(from:)` still hide CHAT after
+    /// the app is killed and relaunched mid-trip.
+    @AppStorage("activeAdminBookingId") private var persistedAdminBookingId = ""
+
     @StateObject
     private var homeViewModel = HomeViewModel()
 
@@ -87,6 +105,12 @@ struct HomeScreen: View {
     private var bookingViewModel = BookingViewModel()
 
     @State private var showCancelPopup = false
+
+    /// The server's `change_book_status` failure message for the CANCEL flow
+    /// specifically, shown inline in `CancelPopupView` rather than only as a
+    /// toast — the popup stays open on failure so this is still visible, and
+    /// SUBMIT doubles as retry.
+    @State private var cancelErrorMessage: String?
 
     @StateObject
     private var navigationViewModel = NavigationViewModel()
@@ -100,9 +124,6 @@ struct HomeScreen: View {
     /// Presented after COMPLETED so the driver can submit the trip's final price
     /// via `/miles_cal` — the step that lets the rider's `get_fair`/payment happen.
     @State private var showTripFarePopup = false
-
-    private let mockPickup = CLLocationCoordinate2D(latitude: 22.5726, longitude: 88.3639)      // Sealdah, Kolkata
-    private let mockDestination = CLLocationCoordinate2D(latitude: 22.9868, longitude: 88.4247) // Barasat, ~25km north
 
     @State private var showOTPView = false
 
@@ -209,6 +230,15 @@ private extension HomeScreen {
                 bookingViewModel.restoreActiveBooking()
 
                 openPendingChatIfNeeded()
+
+                // Every time this account's Home appears — cold launch or
+                // resuming a session — this device re-asserts its token as the
+                // one the server should push to. A device that logged in once
+                // and is never reopened again simply never runs this a second
+                // time, so it can't silently steal push back from whichever
+                // device the driver is actually using; the one they're holding
+                // right now always wins.
+                FCMTokenManager.shared.registerWithServerIfLoggedIn()
             }
             .onChange(of: scenePhase) { phase in
 
@@ -219,6 +249,12 @@ private extension HomeScreen {
                 guard phase == .active else { return }
 
                 bookingViewModel.restoreActiveBooking()
+
+                // Also on every return to foreground, not just the first mount —
+                // `.onAppear` alone only fires once for the life of this screen
+                // in the navigation stack, so leaving the app backgrounded for a
+                // long stretch and coming back would otherwise go untouched.
+                FCMTokenManager.shared.registerWithServerIfLoggedIn()
             }
             .onReceive(locationTimer) { _ in
 
@@ -305,6 +341,14 @@ private extension HomeScreen {
                         subtitle: message
                     )
 
+                    // CANCEL keeps its popup open on failure — the same message
+                    // shown inline there, with SUBMIT itself now acting as retry
+                    // rather than forcing the driver to reopen CANCEL and retype
+                    // the reason.
+                    if pendingHomeAction == .cancel {
+                        cancelErrorMessage = message
+                    }
+
                 case .success(let message):
 
                     // Was showing a red "Failed" toast on success — so a successful
@@ -346,6 +390,8 @@ private extension HomeScreen {
                         showTripFarePopup = true
 
                     case .cancel:
+                        showCancelPopup = false
+                        cancelErrorMessage = nil
                         clearActiveBooking()
 
                     default:
@@ -410,7 +456,8 @@ private extension HomeScreen {
                 bookingId: bookingViewModel.incomingOffer?.bookingId ?? "",
                 pickup: bookingViewModel.incomingOffer?.pickupAddress ?? "",
                 drop: bookingViewModel.incomingOffer?.dropAddress ?? "",
-                needs: bookingViewModel.incomingOffer?.specialNeed ?? "None"
+                needs: bookingViewModel.incomingOffer?.specialNeed ?? "None",
+                isAdminBooking: isAdminBookingOffer
             ) {
                 handleBookingAccepted()
             }
@@ -422,11 +469,14 @@ private extension HomeScreen {
                 isPresented: $showCancelPopup,
                 title: "Reason For Cancellation :",
                 placeholder: "Type here...",
-                buttonTitle: "SUBMIT"
+                buttonTitle: "SUBMIT",
+                isSubmitting: bookingViewModel.isLoading && pendingHomeAction == .cancel,
+                errorMessage: cancelErrorMessage
             ) { reason in
 
                 guard !bookingViewModel.isLoading else { return }
 
+                cancelErrorMessage = nil
                 pendingHomeAction = .cancel
 
                 bookingViewModel.changeBookingStatus(
@@ -512,12 +562,16 @@ private extension HomeScreen {
                         // In-app chat against this booking, replacing the SMS
                         // composer: it needs no phone number, keeps the thread
                         // attached to the trip, and the customer sees it inside
-                        // their own app.
-                        ActionButtonView(
-                            title: "CHAT",
-                            backgroundColor: AppColors.primaryYellow
-                        ) {
-                            openChat()
+                        // their own app. Hidden for an admin-assigned booking —
+                        // there's no customer-side thread opened against one.
+                        if !activeBookingIsAdmin {
+
+                            ActionButtonView(
+                                title: "CHAT",
+                                backgroundColor: AppColors.primaryYellow
+                            ) {
+                                openChat()
+                            }
                         }
 
                         ActionButtonView(
@@ -566,7 +620,10 @@ private extension HomeScreen {
                 // The trip no longer starts on this tap. It sends the code and
                 // opens the OTP gate; `onboard` is posted only after the server
                 // accepts what the driver types in — the standard ride-hailing
-                // handshake, and the whole point of `verify_ride_otp`.
+                // handshake, and the whole point of `verify_ride_otp`. Skipped
+                // entirely for an admin-assigned booking: admin created it
+                // directly, so there's no customer-side code to hand over —
+                // `send_ride_otp`/`verify_ride_otp` never run for one.
                 ActionButtonView(
                     title: "ON BOARD",
                     backgroundColor: AppColors.greenAppColor
@@ -574,13 +631,19 @@ private extension HomeScreen {
 
                     guard !bookingViewModel.isLoading else { return }
 
-                    beginOTPVerification()
+                    if activeBookingIsAdmin {
+                        startTripWithoutOTP()
+                    } else {
+                        beginOTPVerification()
+                    }
                 }
 
                 ActionButtonView(
                     title: "CANCEL",
                     backgroundColor: .red
                 ) {
+
+                    cancelErrorMessage = nil
 
                     withAnimation {
                         showCancelPopup = true
@@ -633,8 +696,21 @@ private extension HomeScreen {
             // changes, so re-offering the SAME booking would decode to an equal
             // `BookingData`, fire nothing, and the popup would never open.
             bookingViewModel.incomingOffer = nil
+            isAdminBookingOffer = false
 
             bookingViewModel.getBookingData(bookingId: bookingId)
+
+        case .newAdminBooking:
+
+            // `/booking` takes no parameters — the server resolves the
+            // authenticated driver's pending admin offer on its own, so the
+            // push's `booking_id` isn't sent, only logged for the trail.
+            print("📥 New admin booking push for id \(payload.bookingId ?? "?") — fetching offer details…")
+
+            bookingViewModel.incomingOffer = nil
+            isAdminBookingOffer = true
+
+            bookingViewModel.getAdminBookingData()
 
         case .customerCancelled:
 
@@ -677,6 +753,9 @@ private extension HomeScreen {
         activeDropAddress = details.dropAddress ?? ""
         activeBookingStatus = BookingAction.accept.rawValue
         tripStage = .pickupUser
+
+        activeBookingIsAdmin = isAdminBookingOffer
+        persistedAdminBookingId = isAdminBookingOffer ? activeBookingId : ""
 
         print("""
         ✅ Booking accepted — trip state captured from /get_bookdata:
@@ -728,6 +807,8 @@ private extension HomeScreen {
         activeDropAddress = booking.dropAddress ?? ""
         activeBookingStatus = status
         tripStage = stage
+
+        activeBookingIsAdmin = (bookingId == persistedAdminBookingId)
 
         // NOTE: deliberately does not write `incomingOffer`. Doing so is what made
         // relaunching mid-trip re-open the accept/reject popup for a job the driver
@@ -804,6 +885,19 @@ private extension HomeScreen {
         )
     }
 
+    /// Admin-booking counterpart of `startTripAfterOTP()` — posts `onboard`
+    /// directly, with neither `send_ride_otp` nor `verify_ride_otp` ever
+    /// called. Reached only when `activeBookingIsAdmin` is true.
+    func startTripWithoutOTP() {
+
+        pendingHomeAction = .onboard
+
+        bookingViewModel.changeBookingStatus(
+            bookingId: activeBookingId,
+            action: .onboard
+        )
+    }
+
     func clearActiveBooking() {
         activeBookingId = ""
         activeCustomerPhone = ""
@@ -811,6 +905,8 @@ private extension HomeScreen {
         activeDropAddress = ""
         activeBookingStatus = ""
         tripStage = .pickupUser
+        activeBookingIsAdmin = false
+        persistedAdminBookingId = ""
         navigationViewModel.stopRide()
     }
 

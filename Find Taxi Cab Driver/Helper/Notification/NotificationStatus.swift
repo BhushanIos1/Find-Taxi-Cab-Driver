@@ -58,8 +58,13 @@ extension NotificationStatus {
 }
 
 enum DriverNotificationAction {
-    
+
     case newBooking
+
+    /// `admin_booking` — fetched via `/booking` (no params, resolves the
+    /// authenticated driver's pending admin offer) rather than `/get_bookdata`.
+    case newAdminBooking
+
     case customerCancelled
     case accountBlocked
     case none
