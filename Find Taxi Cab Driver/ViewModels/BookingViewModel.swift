@@ -252,7 +252,67 @@ final class BookingViewModel: ObservableObject {
             }
         }
     }
-    
+
+    /// Retries fetching a booking until its pickup/drop-off coordinates are
+    /// present and numeric, or gives up — `latfrom`/`longifrom`/`latto`/`longto`
+    /// can lag a beat behind the rest of the booking row being queryable (seen
+    /// on an admin-assigned booking, not ruled out for a driver-matched one
+    /// either). Without this, a route simply never draws and nothing says why.
+    ///
+    /// Deliberately bypasses `incomingOffer`/`bookingState` — those drive the
+    /// accept/reject popup, and this runs for a trip the driver has *already*
+    /// accepted. Re-fetching through `getBookingData`/`getAdminBookingData`
+    /// instead would re-open that popup for a job already underway.
+    func fetchBookingWithCoordinates(
+        bookingId: String,
+        isAdmin: Bool,
+        initial: BookingData
+    ) async -> BookingData {
+
+        guard !bookingId.isEmpty, !Self.hasCoordinates(initial) else { return initial }
+
+        let maxAttempts = 4
+
+        for attempt in 1...maxAttempts {
+
+            print("⚠️ ROUTE: coordinates missing for booking \(bookingId) (attempt \(attempt)/\(maxAttempts)) — retrying…")
+
+            try? await Task.sleep(for: .seconds(2))
+
+            do {
+
+                let response: BookingDetailsResponse = try await APIClient.shared.request(
+                    isAdmin ? DriverAPI.fetchAdminBooking : DriverAPI.getBookingData(bookingId: bookingId),
+                    responseType: BookingDetailsResponse.self
+                )
+
+                if response.result.lowercased() == "success",
+                   let refreshed = response.bookingData,
+                   Self.hasCoordinates(refreshed) {
+                    return refreshed
+                }
+
+            } catch {
+                print("⚠️ ROUTE: coordinate retry fetch failed —", error)
+            }
+        }
+
+        print("❌ ROUTE: giving up on coordinates for booking \(bookingId) after \(maxAttempts) attempts — no route will draw for this leg.")
+        return initial
+    }
+
+    private static func hasCoordinates(_ booking: BookingData) -> Bool {
+
+        guard let latFrom = booking.latFrom, Double(latFrom) != nil,
+              let longiFrom = booking.longiFrom, Double(longiFrom) != nil,
+              let latTo = booking.latTo, Double(latTo) != nil,
+              let longiTo = booking.longiTo, Double(longiTo) != nil else {
+            return false
+        }
+
+        return true
+    }
+
     func changeBookingStatus(
         bookingId: String,
         action: BookingAction,

@@ -111,6 +111,14 @@ final class NavigationViewModel: NSObject, ObservableObject, CLLocationManagerDe
     private var pickupCoordinate: CLLocationCoordinate2D?
     private var destinationCoordinate: CLLocationCoordinate2D?
 
+    /// Lets a caller check whether `beginTripToDestination()` would actually
+    /// have something to draw before calling it — `startRide()` is the only
+    /// place these get set, and `HomeScreen` now reaches it through a retry
+    /// that can still be in flight when ON BOARD succeeds.
+    var hasRouteCoordinates: Bool {
+        pickupCoordinate != nil && destinationCoordinate != nil
+    }
+
     @Published private(set) var currentLeg: RideLeg = .toPickup
     @Published var distanceRemaining: String = ""
     @Published var etaText: String = ""
@@ -172,8 +180,11 @@ final class NavigationViewModel: NSObject, ObservableObject, CLLocationManagerDe
     func beginTripToDestination() {
 
         guard let pickup = pickupCoordinate, let destination = destinationCoordinate else {
+            print("❌ ROUTE: beginTripToDestination() called with no stored pickup/destination — this should be unreachable now that HomeScreen checks hasRouteCoordinates first.")
             return
         }
+
+        print("▶️ ROUTE: drawing pickup→destination leg — pickup \(pickup.latitude),\(pickup.longitude) → destination \(destination.latitude),\(destination.longitude)")
 
         currentLeg = .toDestination
 
@@ -220,15 +231,53 @@ final class NavigationViewModel: NSObject, ObservableObject, CLLocationManagerDe
         waypointColor: UIColor
     ) {
         Task {
-            do {
-                let route = try await DirectionsService.fetchRoute(origin: origin, destination: waypoint)
-                await MainActor.run {
-                    drawRoute(route, waypoint: waypoint, waypointTitle: waypointTitle, waypointColor: waypointColor)
-                    distanceRemaining = route.distanceText
-                    etaText = route.durationText
+
+            let maxAttempts = 3
+
+            for attempt in 1...maxAttempts {
+
+                do {
+
+                    let route = try await DirectionsService.fetchRoute(origin: origin, destination: waypoint)
+
+                    await MainActor.run {
+                        drawRoute(route, waypoint: waypoint, waypointTitle: waypointTitle, waypointColor: waypointColor)
+                        distanceRemaining = route.distanceText
+                        etaText = route.durationText
+                    }
+
+                    print("✅ ROUTE: drew the leg to \(waypointTitle) via Directions (attempt \(attempt)/\(maxAttempts)).")
+                    return
+
+                } catch {
+
+                    print("⚠️ ROUTE: Directions fetch to \(waypointTitle) failed (attempt \(attempt)/\(maxAttempts)) — \(error)")
+
+                    if attempt < maxAttempts {
+                        try? await Task.sleep(for: .seconds(1.5))
+                    }
                 }
-            } catch {
-                print("Route fetch failed: \(error)")
+            }
+
+            // Directions never came back with a usable route for this leg —
+            // used to leave the driver with no line at all and nothing saying
+            // why. A straight line isn't turn-by-turn accurate, but it's
+            // always drawable from just the two coordinates already in hand,
+            // so the driver is never left looking at a blank map.
+            print("❌ ROUTE: Directions failed \(maxAttempts) times for the leg to \(waypointTitle) — falling back to a straight line.")
+
+            await MainActor.run {
+
+                let straightPath = GMSMutablePath()
+                straightPath.add(origin)
+                straightPath.add(waypoint)
+
+                drawRoute(
+                    RouteInfo(path: straightPath, distanceText: "", durationText: ""),
+                    waypoint: waypoint,
+                    waypointTitle: waypointTitle,
+                    waypointColor: waypointColor
+                )
             }
         }
     }

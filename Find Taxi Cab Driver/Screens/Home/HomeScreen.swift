@@ -127,6 +127,13 @@ struct HomeScreen: View {
 
     @State private var showOTPView = false
 
+    /// Some drivers were tapping ON BOARD 2-3 times in a row, and each tap
+    /// called `/send_ride_otp` again — the customer got a fresh code every
+    /// time, with no way to know which one was still valid. This caps it to
+    /// one send per trip; a genuine resend still works via the sheet's own
+    /// "Didn't get it? Resend OTP" button, which is unaffected.
+    @State private var hasRequestedRideOTP = false
+
     /// The booking currently in progress (accepted, on board, etc.) — threaded
     /// into every trip-scoped call (ON BOARD, CANCEL, SEND SMS, OTP verify)
     /// instead of the empty placeholder those used to send.
@@ -360,10 +367,22 @@ private extension HomeScreen {
                     )
 
                     // Final fare accepted — only now is the trip actually finished.
+                    //
+                    // `lastBookingAction` was never reset after being read here,
+                    // so once a driver finished one trip this way, every later
+                    // success on an unrelated call — PICKUP USER on the very
+                    // next booking, say — still read `.submitFare` as true and
+                    // wiped `activeBookingId` right after accepting the new job.
+                    // That's what made the active-trip screen (buttons, map,
+                    // everything gated on `activeBookingId.isEmpty`) go blank
+                    // the instant PICKUP USER was tapped, with no error shown:
+                    // the PICKUP USER call itself had already succeeded.
                     if bookingViewModel.lastBookingAction == .submitFare {
                         showTripFarePopup = false
                         clearActiveBooking()
                     }
+
+                    bookingViewModel.lastBookingAction = nil
 
                     switch pendingHomeAction {
 
@@ -379,7 +398,7 @@ private extension HomeScreen {
                         // "current location → pickup" to "pickup → destination".
                         activeBookingStatus = BookingAction.onboard.rawValue
                         withAnimation { tripStage = .markCompleted }
-                        navigationViewModel.beginTripToDestination()
+                        beginTripToDestinationWhenReady()
 
                     case .complete:
                         // Don't tear the trip down yet — Android goes straight from
@@ -826,17 +845,65 @@ private extension HomeScreen {
         )
     }
 
+    /// Draws the route for this leg. `details`'s coordinates can arrive blank
+    /// or non-numeric (confirmed on an admin-assigned booking) — rather than
+    /// silently giving up on the route forever, this waits for
+    /// `fetchBookingWithCoordinates` to confirm them (or exhaust its
+    /// retries) before drawing. Never touches `activeBookingId` or anything
+    /// `bottomSection`'s button row depends on — a missing route must never
+    /// hide ON BOARD/CANCEL/CHAT/MAKE CALL from the driver.
     func startRoute(for details: BookingData, resuming leg: RideLeg = .toPickup) {
 
-        guard
-            let latFromText = details.latFrom, let pickupLat = Double(latFromText),
-            let longiFromText = details.longiFrom, let pickupLng = Double(longiFromText),
-            let latToText = details.latTo, let dropLat = Double(latToText),
-            let longiToText = details.longiTo, let dropLng = Double(longiToText)
-        else { return }
+        let bookingId = details.bookingId ?? activeBookingId
+        let isAdmin = activeBookingIsAdmin
 
-        let pickup = CLLocationCoordinate2D(latitude: pickupLat, longitude: pickupLng)
-        let destination = CLLocationCoordinate2D(latitude: dropLat, longitude: dropLng)
+        Task {
+
+            let resolved = await bookingViewModel.fetchBookingWithCoordinates(
+                bookingId: bookingId,
+                isAdmin: isAdmin,
+                initial: details
+            )
+
+            drawRoute(for: resolved, resuming: leg)
+        }
+    }
+
+    private func drawRoute(for details: BookingData, resuming leg: RideLeg) {
+
+        if let latFromText = details.latFrom, let pickupLat = Double(latFromText),
+           let longiFromText = details.longiFrom, let pickupLng = Double(longiFromText),
+           let latToText = details.latTo, let dropLat = Double(latToText),
+           let longiToText = details.longiTo, let dropLng = Double(longiToText) {
+
+            drawRoute(
+                pickup: CLLocationCoordinate2D(latitude: pickupLat, longitude: pickupLng),
+                destination: CLLocationCoordinate2D(latitude: dropLat, longitude: dropLng),
+                resuming: leg
+            )
+            return
+        }
+
+        // `fetchBookingWithCoordinates` already retried the server and still
+        // came back with no usable lat/lng — confirmed to happen for real
+        // (an admin-created booking's coordinates can be genuinely blank, not
+        // just slow to land), so retrying further here wouldn't help. The
+        // address text is still there, so geocode it rather than leaving the
+        // driver with no route for this leg at all.
+        print("⚠️ ROUTE: no usable lat/lng for booking \(details.bookingId ?? "?") — falling back to geocoding the address text.")
+
+        geocodeAndDrawRoute(
+            pickupAddress: details.pickupAddress,
+            destinationAddress: details.dropAddress,
+            resuming: leg
+        )
+    }
+
+    private func drawRoute(
+        pickup: CLLocationCoordinate2D,
+        destination: CLLocationCoordinate2D,
+        resuming leg: RideLeg
+    ) {
 
         // Falls back to the pickup point itself if we don't have a GPS fix yet —
         // still shows the pickup pin, just without a from-here route on the first frame.
@@ -850,6 +917,126 @@ private extension HomeScreen {
         )
     }
 
+    /// Last resort when the booking carries no structured coordinates at all.
+    /// Two separate `CLGeocoder` instances — a single instance can only run
+    /// one request at a time, and would otherwise fail the second of these
+    /// two concurrent lookups outright.
+    private func geocodeAndDrawRoute(
+        pickupAddress: String?,
+        destinationAddress: String?,
+        resuming leg: RideLeg
+    ) {
+
+        guard let pickupAddress, !pickupAddress.isEmpty,
+              let destinationAddress, !destinationAddress.isEmpty else {
+            print("❌ ROUTE: no address text to geocode either — giving up on drawing this leg.")
+            return
+        }
+
+        let pickupGeocoder = CLGeocoder()
+        let destinationGeocoder = CLGeocoder()
+
+        Task {
+
+            async let pickupPlacemarks = try? pickupGeocoder.geocodeAddressString(pickupAddress)
+            async let destinationPlacemarks = try? destinationGeocoder.geocodeAddressString(destinationAddress)
+
+            guard let pickup = await pickupPlacemarks?.first?.location?.coordinate,
+                  let destination = await destinationPlacemarks?.first?.location?.coordinate else {
+                print("❌ ROUTE: geocoding the address text failed too — giving up on drawing this leg.")
+                return
+            }
+
+            drawRoute(pickup: pickup, destination: destination, resuming: leg)
+        }
+    }
+
+    /// `navigationViewModel.beginTripToDestination()` only has a route to draw
+    /// once `startRide()` has set its pickup/destination coordinates, and
+    /// those can take a while to resolve (API retry, then Directions retry).
+    /// Open-ended waiting for that chain wasn't good enough — this guarantees
+    /// a hard deadline instead: try immediately, and if the coordinates
+    /// aren't ready within 5s, force the leg to draw anyway, geocoding the
+    /// address text on the spot rather than depending on the API chain at
+    /// all. The driver must always see a line within 5s of ON BOARD
+    /// succeeding, not "eventually, if every upstream call happens to land."
+    private func beginTripToDestinationWhenReady() {
+
+        if navigationViewModel.hasRouteCoordinates {
+            print("▶️ ROUTE: coordinates already ready — starting the to-destination leg immediately.")
+            navigationViewModel.beginTripToDestination()
+            return
+        }
+
+        print("⏳ ROUTE: coordinates not ready yet — forcing the to-destination leg in 5s regardless.")
+
+        Task {
+
+            try? await Task.sleep(for: .seconds(5))
+
+            guard tripStage == .markCompleted else { return } // trip moved on or ended while waiting
+
+            if navigationViewModel.hasRouteCoordinates {
+                print("▶️ ROUTE: coordinates became ready within the 5s window — starting the to-destination leg.")
+                navigationViewModel.beginTripToDestination()
+                return
+            }
+
+            // The driver is physically at/near pickup by now — the customer
+            // just boarded — so their live GPS fix is a better, and simpler,
+            // origin than anything the booking row carries. Only the
+            // destination actually needs resolving here, which halves what
+            // can go wrong versus needing both ends to geocode successfully
+            // (confirmed to matter: this whole path is reached far more often
+            // on an admin-assigned booking, where even the address text can
+            // be thinner than a normal driver-matched one).
+            if let origin = locationService.currentLocation?.coordinate {
+
+                print("⏰ ROUTE: 5s elapsed with no coordinates from the API — forcing the to-destination leg from the driver's live GPS position to the geocoded destination address.")
+
+                geocodeDestinationAndDrawRoute(from: origin, destinationAddress: activeDropAddress)
+
+            } else {
+
+                print("⏰ ROUTE: 5s elapsed with no coordinates from the API and no GPS fix yet — falling back to geocoding both addresses.")
+
+                geocodeAndDrawRoute(
+                    pickupAddress: activePickupAddress,
+                    destinationAddress: activeDropAddress,
+                    resuming: .toDestination
+                )
+            }
+        }
+    }
+
+    /// Narrower sibling of `geocodeAndDrawRoute` for the pickup→destination
+    /// leg specifically — only the destination needs geocoding, since the
+    /// origin is the driver's own current position, not anything from the
+    /// booking row.
+    private func geocodeDestinationAndDrawRoute(
+        from origin: CLLocationCoordinate2D,
+        destinationAddress: String?
+    ) {
+
+        guard let destinationAddress, !destinationAddress.isEmpty else {
+            print("❌ ROUTE: no destination address text to geocode — the to-destination leg won't draw.")
+            return
+        }
+
+        let geocoder = CLGeocoder()
+
+        Task {
+
+            guard let placemark = try? await geocoder.geocodeAddressString(destinationAddress).first,
+                  let destination = placemark.location?.coordinate else {
+                print("❌ ROUTE: geocoding the destination address failed — the to-destination leg won't draw.")
+                return
+            }
+
+            drawRoute(pickup: origin, destination: destination, resuming: .toDestination)
+        }
+    }
+
     /// Ends trip-scoped state — customer cancellation (push) or driver-initiated
     /// cancel (CANCEL button) both funnel here.
     /// Driver has arrived and tapped START TRIP.
@@ -858,6 +1045,20 @@ private extension HomeScreen {
     /// the moment they need to read it out — and so it can't go stale sitting in
     /// an SMS while the driver is still ten minutes away.
     func beginOTPVerification() {
+
+        // Already sent for this trip — a second (or third) ON BOARD tap just
+        // reopens the same sheet rather than firing another code. Dismissing
+        // the sheet without verifying and tapping ON BOARD again is still the
+        // one case this needs to allow back in, hence reopening it here
+        // instead of simply doing nothing.
+        guard !hasRequestedRideOTP else {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                showOTPView = true
+            }
+            return
+        }
+
+        hasRequestedRideOTP = true
 
         bookingViewModel.otpState = nil
         bookingViewModel.sendRideOTP(bookingId: activeBookingId)
@@ -907,6 +1108,7 @@ private extension HomeScreen {
         tripStage = .pickupUser
         activeBookingIsAdmin = false
         persistedAdminBookingId = ""
+        hasRequestedRideOTP = false
         navigationViewModel.stopRide()
     }
 
